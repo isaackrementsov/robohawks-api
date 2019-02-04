@@ -1,3 +1,7 @@
+# Robohawks-2019-new
+This is the new robohawks robot controller app. 
+We were using an old version, so this one was created
+to fix compatibility errors.
 ## Welcome!
 This GitHub repository contains the source code that is used to build an Android app to control a *FIRST* Tech Challenge competition robot.  To use this SDK, download/clone the entire project to your local computer.
 
