@@ -14,6 +14,8 @@ public class LifterBot extends OpMode{
     DcMotor motorRightB;
     DcMotor motorLeftA;
     DcMotor motorLeftB;
+    DcMotor spinnerRight;
+    DcMotor spinnerLeft;
     Servo liftRight;
     Servo liftLeft;
     Servo grabberRight;
@@ -27,6 +29,8 @@ public class LifterBot extends OpMode{
         liftLeft = hardwareMap.servo.get("liftL");
         grabberRight = hardwareMap.servo.get("grabberR");
         grabberLeft = hardwareMap.servo.get("grabberL");
+        spinnerRight = hardwareMap.dcMotor.get("spinnerR");
+        spinnerLeft = hardwareMap.dcMotor.get("spinnerL");
         //motorRightA.setDirection(DcMotor.Direction.REVERSE);      //think about logic of motors and how you need to reverse two of them
         //motorRightB.setDirection(DcMotor.Direction.REVERSE);
     }
@@ -73,8 +77,33 @@ public class LifterBot extends OpMode{
         telemetry.addData("Joy2", "Joystick 2:  " + String.format("%.2s", gamepad1.right_stick_y));
     }
     private void loopController2(){
-        double rightY = -gamepad2.right_stick_y;
-        double leftY = -gamepad2.left_stick_y;
-        
+        double rightY = -gamepad2.right_stick_y; //Controls grabber/spinner arm, not continuous
+        double leftY = -gamepad2.left_stick_y; // Controls lifter arm, continuous
+        //This is boolean because it is checking whether button is pressed
+        boolean a = gamepad2.a; //Turns on spinner
+        rightY = Range.clip(rightY, -1, 1);
+        leftY = Range.clip(leftY, -1, 1);
+        if(Math.abs(rightY) > .1){ //Threshold to prevent response to controller bumps
+            if(rightY < 0){
+                grabberRight.setPosition(0); //Because servos are opposite each other, they must have opposite positions
+                grabberLeft.setPosition(1);
+            }else if(rightY > 0){
+                grabberRight.setPosition(1);
+                grabberLeft.setPosition(0);
+            }else{
+                grabberRight.setPosition(0.5);
+                grabberLeft.setPosition(0.5);
+            }
+        }
+        if(Math.abs(leftY) > .1){
+            double position = (leftY + 1)/2; //So that position is not negative and between 0 and 1
+            double position2 = (-leftY + 1)/2; //Opposite position
+            grabberRight.setPosition(position); //No conditionals here because this is a continuous motion, possible establish limits later
+            grabberLeft.setPosition(position2);
+        }
+        if(a){
+            spinnerRight.setPower(1); //Tentative power settings, need to test
+            spinnerLeft.setPower(-1);
+        }
     }
 }
