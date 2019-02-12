@@ -14,8 +14,7 @@ public class LifterBot extends OpMode{
     DcMotor motorRightB;
     DcMotor motorLeftA;
     DcMotor motorLeftB;
-    DcMotor spinnerRight;
-    DcMotor spinnerLeft;
+    DcMotor spinner;
     Servo liftRight;
     Servo liftLeft;
     Servo grabberRight;
@@ -29,8 +28,7 @@ public class LifterBot extends OpMode{
         liftLeft = hardwareMap.servo.get("liftL");
         grabberRight = hardwareMap.servo.get("grabberR");
         grabberLeft = hardwareMap.servo.get("grabberL");
-        spinnerRight = hardwareMap.dcMotor.get("spinnerR");
-        spinnerLeft = hardwareMap.dcMotor.get("spinnerL");
+        spinner = hardwareMap.dcMotor.get("spinner");
         //motorRightA.setDirection(DcMotor.Direction.REVERSE);      //think about logic of motors and how you need to reverse two of them
         //motorRightB.setDirection(DcMotor.Direction.REVERSE);
     }
@@ -102,8 +100,11 @@ public class LifterBot extends OpMode{
             grabberLeft.setPosition(position2);
         }
         if(a){
-            spinnerRight.setPower(1); //Tentative power settings, need to test
-            spinnerLeft.setPower(-1);
+            if(spinner.getPower() > 0){
+                spinner.setPower(0);
+            }else{
+                spinner.setPower(1);
+            }
         }
     }
 }
