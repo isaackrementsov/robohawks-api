@@ -49,11 +49,12 @@ public class LifterBot extends OpMode {
         loopController1();
         //loopController2();
     }
+    //Revised based on https://ftcforum.usfirst.org/forum/ftc-technology/android-studio/6361-mecanum-wheels-drive-code-example
     private void loopController1(){
         // input joystick values into variables that we can use to control the motors
-        double rightX = -gamepad1.right_stick_x;
-        double rightY = -gamepad1.right_stick_y; //Strafe
-        double leftX = -gamepad1.left_stick_x; //Yaw
+        double rightX = gamepad1.right_stick_x; //Strafe
+        double rightY = -gamepad1.right_stick_y; //Speed
+        double leftX = gamepad1.left_stick_x; //Yaw (Turn)
         rightX = Range.clip(rightX, -1, 1);
         rightY = Range.clip(rightY, -1, 1);// sets a value check to make sure we don't go over the desired speed (related to joysticks)
         leftX = Range.clip(leftX, -1, 1);
@@ -65,10 +66,10 @@ public class LifterBot extends OpMode {
         else if (gamepad1.dpad_left) speed = 1;
 
         if (Math.abs(rightX) > .1 || Math.abs(leftX) > .1 || Math.abs(rightY) > .1) {
-            motorRightA.setPower((-rightY - rightX - leftX) / 4 * speed);
-            motorRightB.setPower((-rightY + rightX + leftX) / 4 * speed);
-            motorLeftA.setPower((rightY + rightX - leftX) / 4 * speed);
-            motorLeftB.setPower((rightY - rightX + leftX) / 4 * speed);
+            motorRightA.setPower((rightY + rightX - leftX) / 4 * speed);
+            motorRightB.setPower((rightY - rightX - leftX) / 4 * speed);
+            motorLeftA.setPower((rightY - rightX + leftX) / 4 * speed);
+            motorLeftB.setPower((rightY + rightX + leftX) / 4 * speed);
         } else { //will not move if joysticks are not moving
             motorRightA.setPower(0);
             motorRightB.setPower(0);
