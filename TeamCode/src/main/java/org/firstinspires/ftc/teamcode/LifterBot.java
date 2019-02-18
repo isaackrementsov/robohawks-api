@@ -117,8 +117,8 @@ public class LifterBot extends OpMode {
             }
         }
         if(rightBumper){
-            bucketRight.setPosition(1);
-            bucketLeft.setPosition(0);
+            bucketRight.setPosition(0.22); //Minimum position is 45 degrees, so this goes to 40
+            bucketLeft.setPosition(0.77);
         }
         if(leftBumper){
             bucketRight.setPosition(0);
