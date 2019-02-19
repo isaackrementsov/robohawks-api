@@ -62,11 +62,59 @@ public class LifterBot extends OpMode {
                 Left - strafe
                 Dpad - Maybe remove
         */
+        boolean dpadUp = gamepad1.dpad_up; //Bring arm and stuff out from dump
+        boolean dpadDown = gamepad1.dpad_down; //Bring arm and stuff in for dump
         if(!gamepad1.atRest()){ //Make sure that a button is pressed before looping for performance reasons
             loopController1();
         }
         if(!gamepad2.atRest()){
             loopController2();
+            if(dpadUp && isReturning){
+                isReturning = false;
+            }else if(dpadDown && isDumping){
+                isDumping = false;
+            }
+        }
+        if(dpadUp || isReturning){
+            isReturning = true;
+            if(!bucketReturning){ //Make sure not to continuously ask buckets to move
+                bucketRight.setPosition(0.22); //return from dump
+                bucketLeft.setPosition(0.77);
+                bucketReturning = true;
+            }else if(bucketRight.getPosition() < 0.29){ //Wait until bucket is close to correct position
+                lifter.setTargetPosition(0);
+                grabberRight.setPosition(1);
+                grabberLeft.setPosition(0);
+                inOut.setTargetPosition(1);
+                spinner.setPower(1);
+                bucketReturning = false;
+                isReturning = false;
+            }
+        }else if(dpadDown || isDumping){
+            isDumping = true;
+            spinner.setPower(0); //Turn off and pull in spinner, dump, lift, dump
+            if(!inOutDumping){ //Don't keep resetting target position while it is already set
+                inOut.setTargetPosition(0);
+                inOutDumping = true;
+            }else if(!inOut.isBusy()){ //Wait for position to be reached
+                if(!grabbersDumping){
+                    grabberRight.setPosition(0.14);
+                    grabberLeft.setPosition(0.86);
+                    grabbersDumping = true;
+                }else if(grabberRight.getPosition() < 0.18){
+                    if(!lifterDumping){
+                        lifter.setTargetPosition(1);
+                        lifterDumping = true;
+                    }else if(!lifter.isBusy()){
+                        bucketRight.setPosition(1);
+                        bucketLeft.setPosition(0);
+                        isDumping = false;
+                        inOutDumping = false;
+                        grabbersDumping = false;
+                        lifterDumping = false;
+                    }
+                }
+            }
         }
     }
     //Revised based on https://ftcforum.usfirst.org/forum/ftc-technology/android-studio/6361-mecanum-wheels-drive-code-example
@@ -121,11 +169,9 @@ public class LifterBot extends OpMode {
         //This is boolean because it is checking whether button is pressed
         boolean rightBumper = gamepad2.right_bumper; //Move bucket down
         boolean leftBumper = gamepad2.left_bumper; //Move bucket up
-        boolean dpadUp = gamepad1.dpad_up; //Bring arm and stuff out from dump
-        boolean dpadDown = gamepad1.dpad_down; //Bring arm and stuff in for dump
         rightY = Range.clip(rightY, -1, 1);
         leftY = Range.clip(leftY, -1, 1);
-        if(Math.abs(leftY) > .1){ //Threshold to prevent response to controller bumps
+        if(Math.abs(leftY) > 0.1){ //Threshold to prevent response to controller bumps
             double position = Range.clip((leftY + 1)/2, 0.14, 1); //So that position is not negative and between 0 and 1
             double position2 = Range.clip((-leftY + 1)/2, 0, 0.86); //Opposing servos must have opposite directions
             grabberRight.setPosition(position);
@@ -133,7 +179,7 @@ public class LifterBot extends OpMode {
             telemetry.addData("Right servo position:", position); //For debugging, can be removed later
             telemetry.addData("Left servo position", position);
         }
-        if(Math.abs(rightY) > .1){
+        if(Math.abs(rightY) > 0.1){
             if(rightY > 0){
                 lifter.setTargetPosition(1);
             }else if(rightY < 0){
@@ -158,47 +204,6 @@ public class LifterBot extends OpMode {
                 spinner.setPower(0);
             }else{
                 spinner.setPower(-1);
-            }
-        }
-        if(dpadUp || isReturning){
-            isReturning = true;
-            if(!bucketReturning){ //Make sure not to continuously ask buckets to move
-                bucketRight.setPosition(0.22); //return from dump
-                bucketLeft.setPosition(0.77);
-                bucketReturning = true;
-            }else if(bucketRight.getPosition() < 0.29){ //Wait until bucket is close to correct position
-                lifter.setTargetPosition(0);
-                grabberRight.setPosition(1);
-                grabberLeft.setPosition(0);
-                inOut.setTargetPosition(1);
-                spinner.setPower(1);
-                bucketReturning = false;
-                isReturning = false;
-            }
-        }else if(dpadDown || isDumping){
-            isDumping = true;
-            spinner.setPower(0); //Turn off and pull in spinner, dump, lift, dump
-            if(!inOutDumping){ //Don't keep resetting target position while it is already set
-                inOut.setTargetPosition(0);
-                inOutDumping = true;
-            }else if(!inOut.isBusy()){ //Wait for position to be reached
-                if(!grabbersDumping){
-                    grabberRight.setPosition(0.14);
-                    grabberLeft.setPosition(0.86);
-                    grabbersDumping = true;
-                }else if(grabberRight.getPosition() < 0.18){
-                    if(!lifterDumping){
-                        lifter.setTargetPosition(1);
-                        lifterDumping = true;
-                    }else if(!lifter.isBusy()){
-                        bucketRight.setPosition(1);
-                        bucketLeft.setPosition(0);
-                        isDumping = false;
-                        inOutDumping = false;
-                        grabbersDumping = false;
-                        lifterDumping = false;
-                    }
-                }
             }
         }
     }
