@@ -20,6 +20,9 @@ public class LifterBot extends OpMode {
     private boolean inOutDumping = false;
     private boolean grabbersDumping = false;
     private boolean lifterDumping = false;
+    private int adjustmentForGrabbers = 1; //Change to 2 if using continuous (or 360) servos
+    private static final int LIFTER_TICK_COUNTS = 1120; //Tick counts for encoded motors
+    private static final int INOUT_TICK_COUNTS = 288;
     private DcMotor motorRightA;                    // creates motors in code
     private DcMotor motorRightB;
     private DcMotor motorLeftA;
@@ -43,6 +46,8 @@ public class LifterBot extends OpMode {
         bucketLeft = hardwareMap.servo.get("bucketL");
         grabberRight = hardwareMap.servo.get("grabberR");
         grabberLeft = hardwareMap.servo.get("grabberL");
+        inOut.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        lifter.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         inOut.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         lifter.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         //motorRightA.setDirection(DcMotor.Direction.REVERSE);      //think about logic of motors and how you need to reverse two of them
@@ -53,69 +58,13 @@ public class LifterBot extends OpMode {
     public void loop() {
         // goes into loop after the setup is done  in above void
         // sets up a loop for driving the robot
-        /*
-            TODO:
-            * Take a look at documentation to see
-            what can be changed
-            * Change control layout -
-                Right - rotate
-                Left - strafe
-                Dpad - Maybe remove
-        */
-        boolean dpadUp = gamepad1.dpad_up; //Bring arm and stuff out from dump
-        boolean dpadDown = gamepad1.dpad_down; //Bring arm and stuff in for dump
-        if(!gamepad1.atRest()){ //Make sure that a button is pressed before looping for performance reasons
-            loopController1();
+        if(!gamepad1.atRest()){//Make sure that a button is pressed before looping for performance reasons
+            loopController1(); //Handles gamepad1 controls
         }
         if(!gamepad2.atRest()){
-            loopController2();
-            if(dpadUp && isReturning){
-                isReturning = false;
-            }else if(dpadDown && isDumping){
-                isDumping = false;
-            }
+            loopController2(); //Handles gamepad2 controls
         }
-        if(dpadUp || isReturning){
-            isReturning = true;
-            if(!bucketReturning){ //Make sure not to continuously ask buckets to move
-                bucketRight.setPosition(0.22); //return from dump
-                bucketLeft.setPosition(0.77);
-                bucketReturning = true;
-            }else if(bucketRight.getPosition() < 0.29){ //Wait until bucket is close to correct position
-                lifter.setTargetPosition(0);
-                grabberRight.setPosition(1);
-                grabberLeft.setPosition(0);
-                inOut.setTargetPosition(1);
-                spinner.setPower(1);
-                bucketReturning = false;
-                isReturning = false;
-            }
-        }else if(dpadDown || isDumping){
-            isDumping = true;
-            spinner.setPower(0); //Turn off and pull in spinner, dump, lift, dump
-            if(!inOutDumping){ //Don't keep resetting target position while it is already set
-                inOut.setTargetPosition(0);
-                inOutDumping = true;
-            }else if(!inOut.isBusy()){ //Wait for position to be reached
-                if(!grabbersDumping){
-                    grabberRight.setPosition(0.14);
-                    grabberLeft.setPosition(0.86);
-                    grabbersDumping = true;
-                }else if(grabberRight.getPosition() < 0.18){
-                    if(!lifterDumping){
-                        lifter.setTargetPosition(1);
-                        lifterDumping = true;
-                    }else if(!lifter.isBusy()){
-                        bucketRight.setPosition(1);
-                        bucketLeft.setPosition(0);
-                        isDumping = false;
-                        inOutDumping = false;
-                        grabbersDumping = false;
-                        lifterDumping = false;
-                    }
-                }
-            }
-        }
+        loopBooleanButtons(); //Handles controls not picked up in atRest(), which are boolean buttons (not triggers or joysticks)
     }
     //Revised based on https://ftcforum.usfirst.org/forum/ftc-technology/android-studio/6361-mecanum-wheels-drive-code-example
     private void loopController1(){
@@ -123,8 +72,6 @@ public class LifterBot extends OpMode {
         double rightX = gamepad1.right_stick_x; //Strafe
         double rightY = gamepad1.right_stick_y; //Speed
         double leftX = gamepad1.left_stick_x; //Yaw (Turn)
-        boolean rightBumper = gamepad1.right_bumper; //Make spinner arm go out
-        boolean leftBumper = gamepad1.left_bumper; //Make spinner arm go in
         rightX = Range.clip(rightX, -1, 1);
         rightY = Range.clip(rightY, -1, 1);// sets a value check to make sure we don't go over the desired speed (related to joysticks)
         leftX = Range.clip(leftX, -1, 1);
@@ -153,11 +100,6 @@ public class LifterBot extends OpMode {
             motorLeftA.setPower(0);
             motorLeftB.setPower(0);
         }
-        if(rightBumper){
-            inOut.setTargetPosition(1);
-        }else if(leftBumper){
-            inOut.setTargetPosition(0);
-        }
         telemetry.addData("Joy1", "Joystick 1:  " + String.format("%.2s", gamepad1.left_stick_y)); // feedback given to the driver phone from the robot phone
         telemetry.addData("Joy2", "Joystick 2:  " + String.format("%.2s", gamepad1.right_stick_y));
     }
@@ -166,32 +108,19 @@ public class LifterBot extends OpMode {
         double leftY = gamepad2.left_stick_y; //Controls grabber/spinner arm, not continuous
         float rightTrigger = gamepad2.right_trigger; //Turns on spinner
         float leftTrigger = gamepad2.left_trigger; //Turns on spinner in reverse
-        //This is boolean because it is checking whether button is pressed
-        boolean rightBumper = gamepad2.right_bumper; //Move bucket down
-        boolean leftBumper = gamepad2.left_bumper; //Move bucket up
         rightY = Range.clip(rightY, -1, 1);
         leftY = Range.clip(leftY, -1, 1);
         if(Math.abs(leftY) > 0.1){ //Threshold to prevent response to controller bumps
-            double position = Range.clip((leftY + 1)/2, 0.14, 1); //So that position is not negative and between 0 and 1
-            double position2 = Range.clip((-leftY + 1)/2, 0, 0.86); //Opposing servos must have opposite directions
-            grabberRight.setPosition(position);
-            grabberLeft.setPosition(position2);
-            telemetry.addData("Right servo position:", position); //For debugging, can be removed later
-            telemetry.addData("Left servo position", position);
+            double position2 = Range.clip((leftY + 1)/2, 0.14, 1); //So that position is not negative and between 0 and 1
+            double position = Range.clip((-leftY + 1)/2, 0, 0.86); //Opposing servos must have opposite directions
+            grabberRight.setPosition((float) position/adjustmentForGrabbers);
+            grabberLeft.setPosition((float) position2/adjustmentForGrabbers);
         }
         if(Math.abs(rightY) > 0.1){
-            if(rightY > 0){
-                lifter.setTargetPosition(1);
-            }else if(rightY < 0){
-                lifter.setTargetPosition(-1);
+            if(Math.abs(rightY) > 0.1) {
+                int sign = rightY > 0 ? 1 : -1;
+                lifter.setPower(sign*0.3); //Encoders have 1120 "ticks" per revolution of a motor
             }
-        }
-        if(rightBumper){
-            bucketRight.setPosition(1);
-            bucketLeft.setPosition(0);
-        }else if(leftBumper){
-            bucketRight.setPosition(0.22); //Minimum position is 45 degrees, so this goes to 40
-            bucketLeft.setPosition(0.77);
         }
         if(rightTrigger > 0.1){
             if(spinner.getPower() > 0){
@@ -205,6 +134,73 @@ public class LifterBot extends OpMode {
             }else{
                 spinner.setPower(-1);
             }
+        }
+    }
+    private void loopBooleanButtons(){
+        //This is boolean because it is checking whether button is pressed
+        boolean rightBumper = gamepad1.right_bumper; //Make spinner arm go out
+        boolean leftBumper = gamepad1.left_bumper; //Make spinner arm go in
+        boolean rightBumper2 = gamepad2.right_bumper; //Move bucket down
+        boolean leftBumper2 = gamepad2.left_bumper; //Move bucket up
+        boolean dpadUp = gamepad1.dpad_up; //Bring arm and stuff out from dump
+        boolean dpadDown = gamepad1.dpad_down; //Bring arm and stuff in for dump
+        if(dpadUp && isReturning){
+            isReturning = false;
+        }else if(dpadDown && isDumping){
+            isDumping = false;
+        }
+        if(dpadUp || isReturning){
+            isReturning = true;
+            if(!bucketReturning){ //Make sure not to continuously ask buckets to move
+                bucketRight.setPosition(0.22); //return from dump
+                bucketLeft.setPosition(0.77);
+                bucketReturning = true;
+            }else if(bucketRight.getPosition() < 0.29){ //Wait until bucket is close to correct position
+                lifter.setTargetPosition(-LIFTER_TICK_COUNTS);
+                grabberRight.setPosition((float) 1/adjustmentForGrabbers);
+                grabberLeft.setPosition(0);
+                inOut.setTargetPosition(INOUT_TICK_COUNTS);
+                spinner.setPower(1);
+                bucketReturning = false;
+                isReturning = false;
+            }
+        }else if(dpadDown || isDumping){
+            isDumping = true;
+            spinner.setPower(0); //Turn off and pull in spinner, dump, lift, dump
+            if(!inOutDumping){ //Don't keep resetting target position while it is already set
+                inOut.setTargetPosition(0);
+                inOutDumping = true;
+            }else if(!inOut.isBusy()){ //Wait for position to be reached
+                if(!grabbersDumping){
+                    grabberRight.setPosition((float) 0.14/adjustmentForGrabbers);
+                    grabberLeft.setPosition((float) 0.86/adjustmentForGrabbers);
+                    grabbersDumping = true;
+                }else if(grabberRight.getPosition() < 0.18){
+                    if(!lifterDumping){
+                        lifter.setTargetPosition(LIFTER_TICK_COUNTS);
+                        lifterDumping = true;
+                    }else if(!lifter.isBusy()){
+                        bucketRight.setPosition(1);
+                        bucketLeft.setPosition(0);
+                        isDumping = false;
+                        inOutDumping = false;
+                        grabbersDumping = false;
+                        lifterDumping = false;
+                    }
+                }
+            }
+        }
+        if(rightBumper2){
+            bucketRight.setPosition(1);
+            bucketLeft.setPosition(0);
+        }else if(leftBumper2){
+            bucketRight.setPosition(0.22); //Minimum position is 45 degrees, so this goes to 40
+            bucketLeft.setPosition(0.77);
+        }
+        if(rightBumper){
+            inOut.setTargetPosition(INOUT_TICK_COUNTS);
+        }else if(leftBumper){
+            inOut.setTargetPosition(0);
         }
     }
 }
