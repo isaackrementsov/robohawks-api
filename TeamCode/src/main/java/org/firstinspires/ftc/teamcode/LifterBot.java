@@ -116,24 +116,18 @@ public class LifterBot extends OpMode {
             grabberRight.setPosition((float) position/adjustmentForGrabbers);
             grabberLeft.setPosition((float) position2/adjustmentForGrabbers);
         }
-        if(Math.abs(rightY) > 0.1){
-            if(Math.abs(rightY) > 0.1) {
-                int sign = rightY > 0 ? 1 : -1;
-                lifter.setPower(sign*0.3); //Encoders have 1120 "ticks" per revolution of a motor
-            }
+        if(Math.abs(rightY) > 0.1) {
+            int sign = rightY < 0 ? 1 : -1;
+            lifter.setPower(sign*0.3); //Encoders have 1120 "ticks" per revolution of a motor
+        }else{
+            lifter.setPower(0);
         }
         if(rightTrigger > 0.1){
-            if(spinner.getPower() > 0){
-                spinner.setPower(0);
-            }else{
-                spinner.setPower(1);
-            }
+            inOut.setPower(rightTrigger/2);
         }else if(leftTrigger > 0.1) {
-            if(spinner.getPower() > 0){
-                spinner.setPower(0);
-            }else{
-                spinner.setPower(-1);
-            }
+            inOut.setPower(-leftTrigger/2);
+        }else{
+            inOut.setPower(0);
         }
     }
     private void loopBooleanButtons(){
@@ -198,9 +192,11 @@ public class LifterBot extends OpMode {
             bucketLeft.setPosition(0.77);
         }
         if(rightBumper){
-            inOut.setTargetPosition(INOUT_TICK_COUNTS);
+            spinner.setPower(-1);
         }else if(leftBumper){
-            inOut.setTargetPosition(0);
+            spinner.setPower(1);
+        }else{
+            spinner.setPower(0);
         }
     }
 }
