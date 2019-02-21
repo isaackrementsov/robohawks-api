@@ -37,6 +37,11 @@ public class Auton extends OpMode {
     }
     @Override
     public void loop(){
-        motorLeftA.setPower(1);
+        // Autonomous to move robot forward and lift lifter
+        motorLeftA.setTargetPosition(25);
+        motorRightA.setTargetPosition(25);
+        motorLeftB.setTargetPosition(25);
+        motorRightB.setTargetPosition(25);
+        lifter.setTargetPosition(25);
     }
 }
