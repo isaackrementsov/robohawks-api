@@ -14,12 +14,6 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 @TeleOp
 //Using inheritance to extend other methods
 public class LifterBot extends OpMode {
-    private boolean isDumping = false;
-    private boolean isReturning = false;
-    private boolean bucketReturning = false;
-    private boolean inOutDumping = false;
-    private boolean grabbersDumping = false;
-    private boolean lifterDumping = false;
     private int adjustmentForGrabbers = 1; //Change to 2 if using continuous (or 360) servos
     private static final int LIFTER_TICK_COUNTS = 1120; //Tick counts for encoded motors
     private static final int INOUT_TICK_COUNTS = 288;
@@ -34,6 +28,7 @@ public class LifterBot extends OpMode {
     private Servo bucketLeft;
     private Servo grabberRight;
     private Servo grabberLeft;
+    private Servo locker;
     public void init() { // initiates and maps motors/servos/sensors
         motorRightA = hardwareMap.dcMotor.get("mRF");               // Finds the motor and the library to use it
         motorRightB = hardwareMap.dcMotor.get("mRB");               // !! Must be prenamed in phone app to green letters (mRF, mRB, etc.) !!
@@ -46,10 +41,12 @@ public class LifterBot extends OpMode {
         bucketLeft = hardwareMap.servo.get("bucketL");
         grabberRight = hardwareMap.servo.get("grabberR");
         grabberLeft = hardwareMap.servo.get("grabberL");
+        locker = hardwareMap.servo.get("locker");
         inOut.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         lifter.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         inOut.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         lifter.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        locker.setPosition(1); //Unlock lifter
         //motorRightA.setDirection(DcMotor.Direction.REVERSE);      //think about logic of motors and how you need to reverse two of them
         //motorRightB.setDirection(DcMotor.Direction.REVERSE);
     }
@@ -72,8 +69,8 @@ public class LifterBot extends OpMode {
         double rightX = gamepad1.right_stick_x; //Strafe
         double rightY = gamepad1.right_stick_y; //Speed
         double leftX = gamepad1.left_stick_x; //Yaw (Turn)
-        float triggerR = gamepad1.right_trigger;
-        float triggerL = gamepad1.left_trigger;
+        float rightTrigger = gamepad1.right_trigger;
+        float leftTrigger = gamepad1.left_trigger;
         rightX = Range.clip(rightX, -1, 1);
         rightY = Range.clip(rightY, -1, 1);// sets a value check to make sure we don't go over the desired speed (related to joysticks)
         leftX = Range.clip(leftX, -1, 1);
@@ -102,14 +99,16 @@ public class LifterBot extends OpMode {
             motorLeftA.setPower(0);
             motorLeftB.setPower(0);
         }
-        if(triggerR > 0.1){
-            lifter.setPower(triggerR/1.5);
-        }else if(triggerL > 0.1){
-            lifter.setPower(-triggerL/1.5);
+        if(rightTrigger > 0.1){
+            lifter.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            lifter.setPower(rightTrigger/1.5);
+        }else if(leftTrigger > 0.1){
+            lifter.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            lifter.setPower(-leftTrigger/1.5);
         }else{
+            lifter.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             lifter.setPower(0);
         }
-
         telemetry.addData("Joy1", "Joystick 1:  " + String.format("%.2s", gamepad1.left_stick_y)); // feedback given to the driver phone from the robot phone
         telemetry.addData("Joy2", "Joystick 2:  " + String.format("%.2s", gamepad1.right_stick_y));
     }
@@ -131,13 +130,12 @@ public class LifterBot extends OpMode {
         }else if(rightY < 0.1){
             inOut.setTargetPosition(0);
         }else{
-            //lifter.setPower(0);
             inOut.setPower(0);
         }
         if(rightTrigger > 0.1){
-            spinner.setPower(-1);
+            spinner.setPower(-1/1.5);
         }else if(leftTrigger > 0.1){
-            spinner.setPower(1);
+            spinner.setPower(1/1.5);
         }else{
             spinner.setPower(0);
         }
@@ -148,55 +146,7 @@ public class LifterBot extends OpMode {
         boolean leftBumper = gamepad1.left_bumper; //Make spinner arm go in
         boolean rightBumper2 = gamepad2.right_bumper; //Move bucket down
         boolean leftBumper2 = gamepad2.left_bumper; //Move bucket up
-        boolean dpadUp = gamepad1.dpad_up; //Bring arm and stuff out from dump
-        boolean dpadDown = gamepad1.dpad_down; //Bring arm and stuff in for dump
-        boolean a = gamepad1.a;
-        if(dpadUp && isReturning){
-            isReturning = false;
-        }else if(dpadDown && isDumping){
-            isDumping = false;
-        }
-        if(dpadUp || isReturning){
-            isReturning = true;
-            if(!bucketReturning){ //Make sure not to continuously ask buckets to move
-                bucketRight.setPosition(0.22); //return from dump
-                bucketLeft.setPosition(0.77);
-                bucketReturning = true;
-            }else if(bucketRight.getPosition() < 0.29){ //Wait until bucket is close to correct position
-                lifter.setTargetPosition(-LIFTER_TICK_COUNTS);
-                grabberRight.setPosition((float) 1/adjustmentForGrabbers);
-                grabberLeft.setPosition(0);
-                inOut.setTargetPosition(INOUT_TICK_COUNTS);
-                spinner.setPower(1);
-                bucketReturning = false;
-                isReturning = false;
-            }
-        }else if(dpadDown || isDumping){
-            isDumping = true;
-            spinner.setPower(0); //Turn off and pull in spinner, dump, lift, dump
-            if(!inOutDumping){ //Don't keep resetting target position while it is already set
-                inOut.setTargetPosition(0);
-                inOutDumping = true;
-            }else if(!inOut.isBusy()){ //Wait for position to be reached
-                if(!grabbersDumping){
-                    grabberRight.setPosition((float) 0.14/adjustmentForGrabbers);
-                    grabberLeft.setPosition((float) 0.86/adjustmentForGrabbers);
-                    grabbersDumping = true;
-                }else if(grabberRight.getPosition() < 0.18){
-                    if(!lifterDumping){
-                        lifter.setTargetPosition(LIFTER_TICK_COUNTS);
-                        lifterDumping = true;
-                    }else if(!lifter.isBusy()){
-                        bucketRight.setPosition(1);
-                        bucketLeft.setPosition(0);
-                        isDumping = false;
-                        inOutDumping = false;
-                        grabbersDumping = false;
-                        lifterDumping = false;
-                    }
-                }
-            }
-        }
+        boolean y = gamepad2.y; //Dedicated testing button
         if(rightBumper2){
             bucketRight.setPosition(1);
             bucketLeft.setPosition(0);
@@ -205,17 +155,14 @@ public class LifterBot extends OpMode {
             bucketLeft.setPosition(0.77);
         }
         if(rightBumper){
-            lifter.setTargetPosition(0);
+            lifter.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            lifter.setTargetPosition((int) Math.floor(-LIFTER_TICK_COUNTS*4.25));
         }else if(leftBumper) {
-            lifter.setTargetPosition((int) Math.round(-LIFTER_TICK_COUNTS*4.25));
+            lifter.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            lifter.setTargetPosition(0);
         }
         if((rightBumper || leftBumper) && inOut.isBusy()){
             lifter.setPower(0);
-        }
-        if(a){
-            lifter.setPower(0.125);
-        }else{
-            lifter.setPower(0.125);
         }
     }
 }
