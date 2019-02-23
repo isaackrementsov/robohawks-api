@@ -2,12 +2,11 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
 
 @Autonomous
-public class Auton extends LinearOpMode {
+public class Auton_no_spinner_down extends LinearOpMode {
     private static final int LIFTER_TICK_COUNTS = 1120; //Tick counts for encoded motors
     private static final int DCMOTOR_TICK_COUNTS = 288;
     private DcMotor motorRightA;   //323.6mm per rev                 creates motors in code
@@ -40,10 +39,10 @@ public class Auton extends LinearOpMode {
         lifter.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
         // Autonomous to move robot forward and lift lifter
-        grabberRight.setPosition(0);
+     /*   grabberRight.setPosition(0);
         grabberLeft.setPosition(1);
         while(grabberRight.getPosition() > 0.1);
-        locker.setPosition(0.36); //sets locker to position to allow robot to drop to the ground
+     */   locker.setPosition(0.36); //sets locker to position to allow robot to drop to the ground
         while(locker.getPosition() < 0.35);
         lifter.setPower(-0.14); //lets robot down *gently*
  //       Thread.sleep(1000); //hopefully on ground

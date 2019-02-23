@@ -1,12 +1,9 @@
 package org.firstinspires.ftc.teamcode;
-import com.qualcomm.hardware.motors.RevRoboticsCoreHexMotor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
-
-import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 /**
  * Created by Sam on 11/2/2017. Copied and pasted by Willem. Viewed by Milo.
@@ -14,7 +11,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  */
 @TeleOp
 //Using inheritance to extend other methods
-public class LifterBot extends OpMode {
+public class LifterBot_no_auto extends OpMode {
     private int adjustmentForGrabbers = 1; //Change to 2 if using continuous (or 360) servos
     private static final int LIFTER_TICK_COUNTS = 1120; //Tick counts for encoded motors
     private static final int INOUT_TICK_COUNTS = 288;
@@ -102,7 +99,7 @@ public class LifterBot extends OpMode {
         }
         if(rightTrigger > 0.1){
             lifter.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            lifter.setPower(-rightTrigger/1.5);
+            lifter.setPower(-0.14);
         }else if(leftTrigger > 0.1){
             lifter.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             lifter.setPower(leftTrigger/1.5);
