@@ -27,7 +27,7 @@ public class LifterBot extends OpMode {
         double rightY = gamepad1.right_stick_y;
         rightY = Range.clip(rightY, -1, 1);
         if(Math.abs(gamepad1.right_stick_y) > 0.1){
-            lifter.setPosition((int) Math.floor(180 * rightY));it 
+            lifter.setPosition((int) Math.floor(180 * rightY));
         }
     }
 }
