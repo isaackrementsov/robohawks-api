@@ -11,7 +11,6 @@ class ServoX extends MotorX {
         super.setEndstops(e1, e2);
     }
     void setPosition(int angle){
-        double angleDec = clip(angle)/totalAngle;
-        servo.setPosition(angleDec);
+        servo.setPosition(clip(angle)/totalAngle);
     }
 }
