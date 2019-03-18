@@ -14,8 +14,9 @@ class EncodedDcMotor {
         gearingRatio = gR;
         motor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
     }
-    void travelDistance(double distance){
+    void travelDistance(double distance, double power){
         int pos = (int) Math.round(gearingRatio*ticks*distance/circumference);
         motor.setTargetPosition(pos);
+        motor.setPower(power);
     }
 }
