@@ -16,7 +16,13 @@ class EncodedDcMotor {
     }
     void travelDistance(double distance, double power){
         int pos = (int) Math.round(gearingRatio*ticks*distance/circumference);
-        motor.setTargetPosition(pos);
-        motor.setPower(power);
+        if(pos > ticks){
+            int part = pos/ticks;
+            for(int i = 1; i <= part; i++){
+                motor.setTargetPosition(pos);
+                motor.setPower(power);
+                while(motor.isBusy());
+            }
+        }
     }
 }
