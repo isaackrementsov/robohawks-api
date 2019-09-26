@@ -4,8 +4,8 @@ to add features, this is your guide to using the lower-level
 FTC API
 
 ## Encoders
-Encoders are some of the most confusing and poorly 
-documented part of the FTC API. The following outlines
+Encoders are one of the most confusing and poorly 
+documented parts of the FTC API. The following outlines
 how to make encoders work.
 
 ### TeleOp
@@ -21,7 +21,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
 @TeleOp
-public class SimpleOpMode extends OpMode {
+public class EncoderOpMode extends OpMode {
     
     DcMotor motor;
     
@@ -64,7 +64,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
 @Autonomous
-public class LifterBot extends LinearOpMode {
+public class AutonOpMode extends LinearOpMode {
     public void runOpMode(){
         DcMotor motor = hardwareMap.dcMotor.get("mLF");
         motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
