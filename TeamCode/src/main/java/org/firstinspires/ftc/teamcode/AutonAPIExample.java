@@ -17,7 +17,10 @@ public class AutonAPIExample extends LinearOpMode {
 
         waitForStart();
 
-        bot.drive(0.7,100, Robot.Direction.FORWARD);
+        bot.drive(0.3,30, Robot.Direction.LEFT);
+        bot.drive(0.3, 30, Robot.Direction.RIGHT);
+        bot.drive(0.3, 30, Robot.Direction.FORWARD);
+        bot.drive(0.3, 30, Robot.Direction.BACKWARD);
         //Add loop code
     }
 

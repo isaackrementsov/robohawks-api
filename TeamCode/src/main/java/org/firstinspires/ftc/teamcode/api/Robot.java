@@ -49,21 +49,24 @@ public class Robot {
                     motorPower = -power;
                     break;
                 case RIGHT:
-                    if(i > 1){
+                    if(i == 0 || i == 3){
                         motorPower = -power;
                     }
+                    break;
                 case LEFT:
-                    if(i < 2){
+                    if (i == 1 || i == 2){
                         motorPower = -power;
                     }
+                    break;
             }
 
             Double[] info = dcMotorInfo.get(motor);
 
             double circumference = info[0];
             double encoderTicks = info[1];
+            int target = (int) (encoderTicks * distanceCM / circumference);
 
-            dcMotors.get(motor).setTargetPosition((int) (encoderTicks * distanceCM / circumference) + dcMotors.get(motor).getCurrentPosition());
+            dcMotors.get(motor).setTargetPosition((motorPower < 0 ? -1 : 1) * target + dcMotors.get(motor).getCurrentPosition());
             dcMotors.get(motor).setMode(DcMotor.RunMode.RUN_TO_POSITION);
             dcMotors.get(motor).setPower(motorPower);
 
