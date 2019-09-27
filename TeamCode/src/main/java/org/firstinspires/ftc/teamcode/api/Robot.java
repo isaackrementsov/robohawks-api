@@ -18,7 +18,7 @@ public class Robot {
     public HashMap<String, Servo> servos = new HashMap<>();
     public HashMap<String, Double[]> servoLimits = new HashMap<>();
 
-    public void addDrivetrain(String[] motors, double[] circumferences, double[] encoderTicks){
+    public void addDrivetrain(String[] motors, double[] circumferences, double[] encoderTicks, boolean reverseLeft){
         drivetrain = motors;
         addDcMotors(motors, circumferences, encoderTicks);
 
@@ -26,7 +26,7 @@ public class Robot {
             String motor = drivetrain[i];
             DcMotor dcMotor = dcMotors.get(motor);
 
-            if(i % 2 == 0){
+            if(i % 2 == 0 && reverseLeft){
                 dcMotor.setDirection(DcMotorSimple.Direction.REVERSE);
             }
 
@@ -36,8 +36,8 @@ public class Robot {
         }
     }
 
-    public void addDrivetrain(String[] motors){
-        addDrivetrain(motors, new double[]{1,1,1,1}, new double[]{0,0,0,0});
+    public void addDrivetrain(String[] motors, boolean reverseLeft){
+        addDrivetrain(motors, new double[]{1,1,1,1}, new double[]{0,0,0,0}, reverseLeft);
     }
 
     public void drive(double power, double distanceCM, Direction direction){
@@ -107,23 +107,23 @@ public class Robot {
         }
     }
 
-    public void drive(double speed, double leftX, double rightX, double rightY){
+    public void drive(double speed, double yaw, double strafe, double power){
         for(int i = 0; i < drivetrain.length; i++){
             double motorPower = 0;
             String motor = drivetrain[i];
 
             switch(i){
                 case 0:
-                    motorPower = rightY + rightX + leftX;
+                    motorPower = power + strafe + yaw;
                     break;
                 case 1:
-                    motorPower = -rightY + rightX + leftX;
+                    motorPower = power - strafe - yaw;
                     break;
                 case 2:
-                    motorPower = rightY - rightX + leftX;
+                    motorPower = power - strafe + yaw;
                     break;
                 case 3:
-                    motorPower = -rightY - rightX + leftX;
+                    motorPower = power + strafe - yaw;
             }
 
             motorPower *= speed;
