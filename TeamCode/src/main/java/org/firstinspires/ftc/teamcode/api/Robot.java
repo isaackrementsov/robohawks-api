@@ -12,7 +12,6 @@ import java.util.HashMap;
 public class Robot {
 
     private HardwareMap hardwareMap;
-    private Telemetry telemetry;
     public String[] drivetrain = new String[4];
     public HashMap<String, DcMotor> dcMotors = new HashMap<>();
     public HashMap<String, Double[]> dcMotorInfo = new HashMap<>();
@@ -35,6 +34,10 @@ public class Robot {
             dcMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
             dcMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         }
+    }
+
+    public void addDrivetrain(String[] motors){
+        addDrivetrain(motors, new double[]{1,1,1,1}, new double[]{0,0,0,0});
     }
 
     public void drive(double power, double distanceCM, Direction direction){
@@ -93,6 +96,7 @@ public class Robot {
                     if(i > 1){
                         motorPower = -power;
                     }
+                    break;
                 case LEFT:
                     if(i < 2){
                         motorPower = -power;
@@ -101,6 +105,35 @@ public class Robot {
 
             dcMotors.get(motor).setPower(motorPower);
         }
+    }
+
+    public void drive(double speed, double leftX, double rightX, double rightY){
+        for(int i = 0; i < drivetrain.length; i++){
+            double motorPower = 0;
+            String motor = drivetrain[i];
+
+            switch(i){
+                case 0:
+                    motorPower = rightY + rightX + leftX;
+                    break;
+                case 1:
+                    motorPower = -rightY + rightX + leftX;
+                    break;
+                case 2:
+                    motorPower = rightY - rightX + leftX;
+                    break;
+                case 3:
+                    motorPower = -rightY - rightX + leftX;
+            }
+
+            motorPower *= speed;
+
+            dcMotors.get(motor).setPower(motorPower);
+        }
+    }
+
+    public void stop(){
+        drive(0, 0, 0, 0);
     }
 
     public void addDcMotor(String motor, double circumference, double encoderTicks){
@@ -131,9 +164,8 @@ public class Robot {
         }
     }
 
-    public Robot(HardwareMap hardwareMap, Telemetry telemetry){
+    public Robot(HardwareMap hardwareMap){
         this.hardwareMap = hardwareMap;
-        this.telemetry = telemetry;
     }
 
     public static enum Direction {
