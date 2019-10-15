@@ -71,7 +71,6 @@ public class Robot {
 
             dcMotors.get(motor).setTargetPosition((motorPower < 0 ? -1 : 1) * target + dcMotors.get(motor).getCurrentPosition());
             dcMotors.get(motor).setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            dcMotors.get(motor).setPower(motorPower);
 
             powers[i] = motorPower;
         }
@@ -148,19 +147,30 @@ public class Robot {
     }
 
     public void addServo(String motor){
-        addServo(motor, 180, 0);
+        addServo(motor, 180, 180, -180);
     }
 
-    public void addServo(String motor, double maxAngle, double minAngle){
+    public void addServo(String motor, double rotationAngle, double maxAngle, double minAngle){
         servos.put(motor, hardwareMap.servo.get(motor));
-        servoLimits.put(motor, new Double[]{minAngle, maxAngle});
+        servoLimits.put(motor, new Double[]{rotationAngle, minAngle, maxAngle});
+    }
+
+    public void resetServo(String motor){
+        servos.get(motor).setPosition(0);
     }
 
     public void rotateServo(String motor, double angle){
         Double[] angleLimits = servoLimits.get(motor);
 
-        if(angle > angleLimits[0] && angle < angleLimits[1]){
-            servos.get(motor).setPosition(angle/360);
+        double rotationAngle = angleLimits[0];
+        double minAngle = angleLimits[1];
+        double maxAngle = angleLimits[2];
+
+        double currentAngle = servos.get(motor).getPosition()*rotationAngle;
+        double targetAngle = currentAngle + angle;
+
+        if(targetAngle >= minAngle && targetAngle <= maxAngle){
+            servos.get(motor).setPosition(targetAngle/rotationAngle);
         }
     }
 
