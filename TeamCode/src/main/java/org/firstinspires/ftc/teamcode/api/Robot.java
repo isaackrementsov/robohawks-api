@@ -1,9 +1,12 @@
 package org.firstinspires.ftc.teamcode.api;
 
+import android.text.method.Touch;
+
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.TouchSensor;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
@@ -12,11 +15,12 @@ import java.util.HashMap;
 public class Robot {
 
     private HardwareMap hardwareMap;
-    public String[] drivetrain = new String[4];
+    private String[] drivetrain = new String[4];
     public HashMap<String, DcMotor> dcMotors = new HashMap<>();
-    public HashMap<String, Double[]> dcMotorInfo = new HashMap<>();
+    private HashMap<String, Double[]> dcMotorInfo = new HashMap<>();
     public HashMap<String, Servo> servos = new HashMap<>();
-    public HashMap<String, Double[]> servoLimits = new HashMap<>();
+    private HashMap<String, Double[]> servoLimits = new HashMap<>();
+    public HashMap<String, TouchSensor[]> limitSwitches = new HashMap<>();
 
     public void addDrivetrain(String[] motors, double[] circumferences, double[] encoderTicks, boolean reverseLeft){
         drivetrain = motors;
@@ -138,12 +142,70 @@ public class Robot {
     public void addDcMotor(String motor, double circumference, double encoderTicks){
         dcMotors.put(motor, hardwareMap.dcMotor.get(motor));
         dcMotorInfo.put(motor,  new Double[]{circumference, encoderTicks});
+
+        dcMotors.get(motor).setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
     }
 
     public void addDcMotors(String motors[], double[] circumferences, double[] encoderTicks){
         for(int i = 0; i < motors.length; i++){
             addDcMotor(motors[i], circumferences[i], encoderTicks[i]);
         }
+    }
+
+    public void moveDcMotor(String motor, double distanceCM, double motorPower){
+        Double[] info = dcMotorInfo.get(motor);
+
+        double circumference = info[0];
+        double encoderTicks = info[1];
+        int target = (int) (encoderTicks * distanceCM / circumference);
+
+        dcMotors.get(motor).setTargetPosition((motorPower < 0 ? -1 : 1) * target + dcMotors.get(motor).getCurrentPosition());
+        dcMotors.get(motor).setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        dcMotors.get(motor).setPower(motorPower);
+
+        while(dcMotors.get(motor).isBusy());
+    }
+
+    public void addLimitedMotor(String motor, String limitLower, String limitUpper, double circumference, double encoderTicks){
+        addDcMotor(motor, circumference, encoderTicks);
+
+        TouchSensor sensorLower = hardwareMap.touchSensor.get(limitLower);
+        TouchSensor sensorUpper = hardwareMap.touchSensor.get(limitUpper);
+        limitSwitches.put(motor, new TouchSensor[]{sensorLower, sensorUpper});
+    }
+
+    public void moveLimitedMotor(String motor, double distanceCM, double motorPower){
+        int sign = (motorPower < 0 ? -1 : 1);
+
+        TouchSensor sensor = limitSwitches.get(motor)[sign < 0 ? 0 : 1];
+        DcMotor motorToMove = dcMotors.get(motor);
+
+        Double[] info = dcMotorInfo.get(motor);
+        double circumference = info[0];
+        double encoderTicks = info[1];
+        int target = (int) (encoderTicks * distanceCM / circumference);
+
+        motorToMove.setTargetPosition(sign * target + dcMotors.get(motor).getCurrentPosition());
+
+        while(Math.abs(motorToMove.getTargetPosition() - motorToMove.getCurrentPosition()) > 10 && !sensor.isPressed()){
+            double diff = Math.abs(motorToMove.getTargetPosition() - motorToMove.getCurrentPosition());
+
+            motorToMove.setPower(diff == 0 ? 0 : motorPower/diff);
+        }
+
+        motorToMove.setPower(0);
+    }
+
+    public void resetLimitedMotor(String motor){
+        TouchSensor endSensor = limitSwitches.get(motor)[1];
+        DcMotor motorToReset = dcMotors.get(motor);
+
+        while(!endSensor.isPressed()){
+            motorToReset.setPower(-0.2);
+        }
+
+        motorToReset.setPower(0);
+        motorToReset.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
     }
 
     public void addServo(String motor){
@@ -166,11 +228,8 @@ public class Robot {
         double minAngle = angleLimits[1];
         double maxAngle = angleLimits[2];
 
-        double currentAngle = servos.get(motor).getPosition()*rotationAngle;
-        double targetAngle = currentAngle + angle;
-
-        if(targetAngle >= minAngle && targetAngle <= maxAngle){
-            servos.get(motor).setPosition(targetAngle/rotationAngle);
+        if(angle >= minAngle && angle <= maxAngle){
+            servos.get(motor).setPosition(angle/rotationAngle);
         }
     }
 

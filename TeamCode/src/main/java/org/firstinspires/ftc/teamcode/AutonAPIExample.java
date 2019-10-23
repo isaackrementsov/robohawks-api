@@ -14,23 +14,16 @@ public class AutonAPIExample extends LinearOpMode {
     public void runOpMode() {
         this.bot = new Robot(hardwareMap);
 
-        bot.addDrivetrain(
-                new String[]{"mRF", "mLF", "mRB", "mLB"},
-                new double[]{32,32,32,32},
-                new double[]{560,560,560,560},
-                true
-        );
-        bot.addServo("rdR", 180, 180, 0);
+        bot.addServo("lock", 180, 180, -180);
 
-        bot.resetServo("rdR");
         waitForStart();
 
-        /*bot.drive(0.3, 30, Robot.Direction.FORWARD);
-        bot.drive(0.3, 30, Robot.Direction.BACKWARD);
-        bot.drive(0.3,30, Robot.Direction.LEFT);
-        bot.drive(0.3, 30, Robot.Direction.RIGHT);*/
+        telemetry.addData("servo pos", bot.servos.get("lock").getPosition());
+        telemetry.update();
 
-        bot.rotateServo("rdR", 180);
+        while(!isStopRequested()){
+
+        }
     }
 
 }
