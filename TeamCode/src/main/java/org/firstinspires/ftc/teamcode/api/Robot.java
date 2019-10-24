@@ -190,7 +190,7 @@ public class Robot {
         while(Math.abs(motorToMove.getTargetPosition() - motorToMove.getCurrentPosition()) > 10 && !sensor.isPressed()){
             double diff = Math.abs(motorToMove.getTargetPosition() - motorToMove.getCurrentPosition());
 
-            motorToMove.setPower(diff == 0 ? 0 : motorPower/diff);
+            motorToMove.setPower(0.1*diff*motorPower);
         }
 
         motorToMove.setPower(0);
