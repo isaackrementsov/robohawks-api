@@ -22,7 +22,8 @@ public class AutonAPIExample extends LinearOpMode {
         telemetry.update();
 
         while(!isStopRequested()){
-
+            bot.resetServo("lock");
+            bot.rotateServo("lock", 45);
         }
     }
 
