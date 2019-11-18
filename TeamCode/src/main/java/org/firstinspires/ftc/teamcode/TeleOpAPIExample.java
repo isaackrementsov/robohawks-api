@@ -12,12 +12,10 @@ public class TeleOpAPIExample extends OpMode {
 
     Robot bot;
     double speed = 0.25;
-    //Servo lock = hardwareMap.servo.get("lock");
 
 
     public void init(){
-
-        this.bot = new Robot(hardwareMap);
+        this.bot = new Robot(hardwareMap, telemetry);
 
         bot.addDrivetrain(new String[]{"mRF", "mLF", "mRB", "mLB"}, true);
     }
