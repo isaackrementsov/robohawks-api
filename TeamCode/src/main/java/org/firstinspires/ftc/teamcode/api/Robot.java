@@ -217,11 +217,12 @@ public class Robot {
         servoLimits.put(motor, new Double[]{rotationAngle, minAngle, maxAngle});
     }
 
-    public void resetServo(String motor){
-        servos.get(motor).setPosition(0);
+    public void resetServo(String motor, int waitTimeMillis){
+        servos.get(motor).setPosition(servoLimits.get(motor)[1]);
+        waitMillis(waitTimeMillis);
     }
 
-    public void rotateServo(String motor, double angle){
+    public void rotateServo(String motor, double angle, int waitTimeMillis){
         Double[] angleLimits = servoLimits.get(motor);
 
         double rotationAngle = angleLimits[0];
@@ -230,9 +231,23 @@ public class Robot {
 
         if(angle >= minAngle && angle <= maxAngle){
             servos.get(motor).setPosition(angle/rotationAngle);
+            waitMillis(waitTimeMillis);
         }
     }
 
+    public void holdServo(String motor, double angle, int waitTimeMillis){
+        long start = System.currentTimeMillis();
+
+        while(System.currentTimeMillis() - start < waitTimeMillis){
+            rotateServo(motor, angle, 0);
+        }
+    }
+
+    private void waitMillis(int millis) {
+        try {
+            Thread.sleep(millis);
+        } catch(InterruptedException e) { }
+    }
     public Robot(HardwareMap hardwareMap){
         this.hardwareMap = hardwareMap;
     }
