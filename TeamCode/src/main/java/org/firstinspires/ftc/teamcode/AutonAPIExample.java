@@ -15,17 +15,16 @@ public class AutonAPIExample extends LinearOpMode {
         this.bot = new Robot(hardwareMap, telemetry);
 
         bot.addDrivetrain(
-                new String[]{"mRF", "mLF", "mRB", "mLB"},
-                /*new String[]{"mLF", "mRF", "mLB", "mRB"},*/
-                new double[]{32,32,32,32},
-                new double[]{560,560,560,560},
-                new double[]{10.3,10.3,10.3,10.3},
-                true
+            new String[]{"mRF", "mLF", "mRB", "mLB"},
+            new double[]{32, 32, 32, 32},
+            new double[]{560, 560, 560, 560},
+            new double[]{10.5, 10.5, 10.5, 10.5},
+            false
         );
 
         waitForStart();
 
-        bot.rotate(0.3, 30.0);
+        bot.drive(0.2, 30, Robot.Direction.FORWARD);
     }
 
 }

@@ -13,8 +13,7 @@ public class ServoTest extends LinearOpMode {
 
 
     public void runOpMode() {
-        long t = System.currentTimeMillis();
-        this.bot = new Robot(hardwareMap);
+        this.bot = new Robot(hardwareMap, telemetry);
         //Servo lock = hardwareMap.servo.get("lock");
         bot.addServo("lock", 180, 90, 0);
 

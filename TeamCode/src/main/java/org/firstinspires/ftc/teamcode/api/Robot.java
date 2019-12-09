@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.api;
 
+import android.graphics.Color;
 import android.text.method.Touch;
 
 import com.qualcomm.robotcore.hardware.ColorSensor;
@@ -24,11 +25,15 @@ public class Robot {
 
     public HashMap<String, DcMotor> dcMotors = new HashMap<>();
     private HashMap<String, Double[]> dcMotorInfo = new HashMap<>();
+
     public HashMap<String, Servo> servos = new HashMap<>();
     private HashMap<String, Double[]> servoLimits = new HashMap<>();
+
     public HashMap<String, TouchSensor[]> limitSwitches = new HashMap<>();
     public HashMap<String, DistanceSensor> distanceSensors = new HashMap<>();
+
     public HashMap<String, ColorSensor> colorSensors = new HashMap<>();
+    private HashMap<String, Integer> colorSensorInfo = new HashMap<>();
 
     public void addDrivetrain(String[] motors, double[] circumferences, double[] encoderTicks, double[] radii, boolean reverseLeft){
         drivetrain = motors;
@@ -173,17 +178,14 @@ public class Robot {
 
             int target = (int) (angle * Math.PI/180 * encoderTicks * radius / circumference);
 
-            telemetry.addData("Target pos: ", /*(motorPower < 0 ? -1 : 1) * */ target + dcMotors.get(motor).getCurrentPosition());
-            telemetry.update();
-
-            dcMotors.get(motor).setTargetPosition((motorPower < 0 ? -1 : 1) *  target + dcMotors.get(motor).getCurrentPosition());
+            dcMotors.get(motor).setTargetPosition((motorPower < 0 ? -1 : 1) * target + dcMotors.get(motor).getCurrentPosition());
             dcMotors.get(motor).setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
             powers[i] = motorPower;
         }
 
         for (int i = 0; i < drivetrain.length; i++) {
-            dcMotors.get(drivetrain[i]).setPower(powers[i]);
+            dcMotors.get(drivetrain[i]).setPower(power);
         }
 
         while(dcMotors.get(drivetrain[0]).isBusy());
@@ -310,21 +312,28 @@ public class Robot {
         } catch(InterruptedException e) { }
     }
 
-    public void addColorSensor(String sensor){
-        colorSensors.put(sensor, hardwareMap.colorSensor.get(sensor));
+    public void addColorSensor(String sensor, int scaleFactor){
+        colorSensors.put(sensor, hardwareMap.get(ColorSensor.class, sensor));
+        colorSensorInfo.put(sensor, scaleFactor);
     }
 
-    public int[] getColorRGB(String sensor){
+    public int[] getColorRGBA(String sensor){
         ColorSensor sensorToUse = colorSensors.get(sensor);
+        int scaleFactor = colorSensorInfo.get(sensor);
 
-        return new int[]{sensorToUse.red(), sensorToUse.green(), sensorToUse.blue()};
+        return new int[]{
+            scaleFactor*sensorToUse.red(),
+            scaleFactor*sensorToUse.green(),
+            scaleFactor*sensorToUse.blue(),
+            scaleFactor*sensorToUse.alpha()
+        };
     }
 
     public void addDistanceSensor(String sensor, boolean optical){
         if(optical){
             distanceSensors.put(sensor, (DistanceSensor) hardwareMap.opticalDistanceSensor.get(sensor));
         }else{
-            distanceSensors.put(sensor, (DistanceSensor) hardwareMap.colorSensor.get(sensor));
+            distanceSensors.put(sensor, hardwareMap.get(DistanceSensor.class, sensor));
         }
     }
 

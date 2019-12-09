@@ -19,6 +19,7 @@ public class LimitSwitchTest extends LinearOpMode {
         waitForStart();
 
         bot.moveLimitedMotor("mRF", 200, 0.2);
+        bot.moveLimitedMotor("mRF", 200, -0.2);
     }
 
 }
