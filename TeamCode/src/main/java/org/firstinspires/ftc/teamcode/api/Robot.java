@@ -151,25 +151,16 @@ public class Robot {
     public void rotate(double power, double angle) {
         double[] powers = new double[4];
 
-        for (int i = 0; i < drivetrain.length; i++) {
-            double motorPower = 0.0;
-            String motor = drivetrain[i];
+        for(int i = 0; i < drivetrain.length; i++){
+            double motorPower = power;
 
-            switch (i) {
-                case 0:
-                    motorPower = power;
-                    break;
-                case 1:
-                    motorPower = -power;
-                    break;
-                case 2:
-                    motorPower = power;
-                    break;
-                case 3:
-                    motorPower = -power;
-                    break;
+            if(i == 1 || i == 3){
+                motorPower = -power;
             }
 
+            powers[i] = motorPower;
+
+            String motor = drivetrain[i];
             Double[] info = dcMotorInfo.get(motor);
 
             double circumference = info[0];
@@ -177,23 +168,22 @@ public class Robot {
             double radius = info[2];
 
             int target = (int) (angle * Math.PI/180 * encoderTicks * radius / circumference);
-
-            dcMotors.get(motor).setTargetPosition((motorPower < 0 ? -1 : 1) * target + dcMotors.get(motor).getCurrentPosition());
-            dcMotors.get(motor).setMode(DcMotor.RunMode.RUN_TO_POSITION);
-
-            powers[i] = motorPower;
+            dcMotors.get(motor).setTargetPosition(target);
         }
 
-        for (int i = 0; i < drivetrain.length; i++) {
-            dcMotors.get(drivetrain[i]).setPower(power);
+        DcMotor test = dcMotors.get(drivetrain[0]);
+        while(Math.abs(test.getTargetPosition() - test.getCurrentPosition()) > 10){
+            for(int i = 0; i < drivetrain.length; i++){
+                dcMotors.get(drivetrain[i]).setPower(powers[i]);
+            }
         }
-
-        while(dcMotors.get(drivetrain[0]).isBusy());
     }
 
     public void stop(){
         drive(0, 0, 0, 0);
     }
+
+    public void addDcMotor(String motor){ addDcMotor(motor, 0, 0, 0); }
 
     public void addDcMotor(String motor, double circumference, double encoderTicks, double radius){
         dcMotors.put(motor, hardwareMap.dcMotor.get(motor));

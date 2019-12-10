@@ -23,6 +23,6 @@ public class BotRotationTest extends LinearOpMode {
 
         waitForStart();
 
-        bot.rotate(0.2, 30.0);
+        bot.rotate(0.2, 360.0);
     }
 }
