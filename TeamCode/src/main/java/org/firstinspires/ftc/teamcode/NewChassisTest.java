@@ -6,23 +6,20 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import org.firstinspires.ftc.teamcode.api.Robot;
 
 @Autonomous
-public class BotRotationTest extends LinearOpMode {
-
+public class NewChassisTest extends LinearOpMode {
     private Robot bot;
 
     public void runOpMode() {
         this.bot = new Robot(hardwareMap, telemetry);
 
-        bot.addDrivetrain(
-                new String[]{"mRF", "mLF", "mRB", "mLB"},
-                new double[]{32, 32, 32, 32},
-                new double[]{560, 560, 560, 560},
-                0.745,
-                true
-        );
+        bot.addDcMotor("drivetrainLeft");
+        bot.addDcMotor("drivetrainRight");
 
         waitForStart();
 
-        bot.rotate(0.2, 180.0);
+        while(!isStopRequested()){
+            bot.dcMotors.get("drivetrainRight").setPower(1);
+            bot.dcMotors.get("drivetrainLeft").setPower(1);
+        }
     }
 }

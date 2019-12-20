@@ -35,9 +35,12 @@ public class Robot {
     public HashMap<String, ColorSensor> colorSensors = new HashMap<>();
     private HashMap<String, Integer> colorSensorInfo = new HashMap<>();
 
-    public void addDrivetrain(String[] motors, double[] circumferences, double[] encoderTicks, double[] radii, boolean reverseLeft){
+    public double rotationCoefficient;
+
+    public void addDrivetrain(String[] motors, double[] circumferences, double[] encoderTicks, double rotationalCoefficient, boolean reverseLeft){
         drivetrain = motors;
-        addDcMotors(motors, circumferences, encoderTicks, radii);
+        rotationCoefficient = rotationalCoefficient;
+        addDcMotors(motors, circumferences, encoderTicks);
 
         for(int i = 0; i < drivetrain.length; i++){
             String motor = drivetrain[i];
@@ -54,7 +57,7 @@ public class Robot {
     }
 
     public void addDrivetrain(String[] motors, boolean reverseLeft){
-        addDrivetrain(motors, new double[]{1,1,1,1}, new double[]{0,0,0,0}, new double[]{0,0,0,0}, reverseLeft);
+        addDrivetrain(motors, new double[]{1,1,1,1}, new double[]{0,0,0,0}, 1, reverseLeft);
     }
 
     public void drive(double power, double distanceCM, Direction direction){
@@ -165,9 +168,8 @@ public class Robot {
 
             double circumference = info[0];
             double encoderTicks = info[1];
-            double radius = info[2];
 
-            int target = (int) (angle * Math.PI/180 * encoderTicks * radius / circumference);
+            int target = (int) (rotationCoefficient * angle * encoderTicks / circumference);
             dcMotors.get(motor).setTargetPosition(target);
         }
 
@@ -183,18 +185,18 @@ public class Robot {
         drive(0, 0, 0, 0);
     }
 
-    public void addDcMotor(String motor){ addDcMotor(motor, 0, 0, 0); }
+    public void addDcMotor(String motor){ addDcMotor(motor, 0, 0); }
 
-    public void addDcMotor(String motor, double circumference, double encoderTicks, double radius){
+    public void addDcMotor(String motor, double circumference, double encoderTicks){
         dcMotors.put(motor, hardwareMap.dcMotor.get(motor));
-        dcMotorInfo.put(motor,  new Double[]{circumference, encoderTicks, radius});
+        dcMotorInfo.put(motor,  new Double[]{circumference, encoderTicks});
 
         dcMotors.get(motor).setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
     }
 
-    public void addDcMotors(String motors[], double[] circumferences, double[] encoderTicks, double[] radii){
+    public void addDcMotors(String motors[], double[] circumferences, double[] encoderTicks){
         for(int i = 0; i < motors.length; i++){
-            addDcMotor(motors[i], circumferences[i], encoderTicks[i], radii[i]);
+            addDcMotor(motors[i], circumferences[i], encoderTicks[i]);
         }
     }
 
@@ -213,7 +215,7 @@ public class Robot {
     }
 
     public void addLimitedMotor(String motor, String limitLower, String limitUpper, double circumference, double encoderTicks){
-        addDcMotor(motor, circumference, encoderTicks, 0);
+        addDcMotor(motor, circumference, encoderTicks);
 
         TouchSensor sensorLower = hardwareMap.touchSensor.get(limitLower);
         TouchSensor sensorUpper = hardwareMap.touchSensor.get(limitUpper);

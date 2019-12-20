@@ -18,7 +18,7 @@ public class AutonAPIExample extends LinearOpMode {
             new String[]{"mRF", "mLF", "mRB", "mLB"},
             new double[]{32, 32, 32, 32},
             new double[]{560, 560, 560, 560},
-            new double[]{10.5, 10.5, 10.5, 10.5},
+            1,
             false
         );
 
