@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.teamcode.api.Robot;
@@ -12,8 +13,9 @@ public class TeleOpAPIExample extends OpMode {
     Robot bot;
     double speed = 0.25;
 
+
     public void init(){
-        this.bot = new Robot(hardwareMap);
+        this.bot = new Robot(hardwareMap, telemetry);
 
         bot.addDrivetrain(new String[]{"mRF", "mLF", "mRB", "mLB"}, true);
     }

@@ -7,24 +7,28 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.Servo;
 
 @Autonomous
-public class AutonAPIExample extends LinearOpMode {
+public class ServoTest extends LinearOpMode {
 
     private Robot bot;
 
+
     public void runOpMode() {
         this.bot = new Robot(hardwareMap, telemetry);
-
-        bot.addDrivetrain(
-            new String[]{"mRF", "mLF", "mRB", "mLB"},
-            new double[]{32, 32, 32, 32},
-            new double[]{560, 560, 560, 560},
-            1,
-            false
-        );
+        //Servo lock = hardwareMap.servo.get("lock");
+        bot.addServo("lock", 180, 90, 0);
 
         waitForStart();
-
-        bot.drive(0.2, 30, Robot.Direction.FORWARD);
+        bot.holdServo("lock", 90.0, 3000);
+        bot.resetServo("lock", 3000);
+        //telemetry.update();
     }
+
+    /*
+    private void timeout(int millis){
+        try {
+            Thread.sleep(5000);
+        }catch(InterruptedException e){}
+    }
+    */
 
 }

@@ -1,29 +1,45 @@
 package org.firstinspires.ftc.teamcode.api;
 
+import android.graphics.Color;
 import android.text.method.Touch;
 
+import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.TouchSensor;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 import java.util.HashMap;
 
 public class Robot {
 
     private HardwareMap hardwareMap;
+    private Telemetry telemetry;
+
     private String[] drivetrain = new String[4];
+
     public HashMap<String, DcMotor> dcMotors = new HashMap<>();
     private HashMap<String, Double[]> dcMotorInfo = new HashMap<>();
+
     public HashMap<String, Servo> servos = new HashMap<>();
     private HashMap<String, Double[]> servoLimits = new HashMap<>();
-    public HashMap<String, TouchSensor[]> limitSwitches = new HashMap<>();
 
-    public void addDrivetrain(String[] motors, double[] circumferences, double[] encoderTicks, boolean reverseLeft){
+    public HashMap<String, TouchSensor[]> limitSwitches = new HashMap<>();
+    public HashMap<String, DistanceSensor> distanceSensors = new HashMap<>();
+
+    public HashMap<String, ColorSensor> colorSensors = new HashMap<>();
+    private HashMap<String, Integer> colorSensorInfo = new HashMap<>();
+
+    public double rotationCoefficient;
+
+    public void addDrivetrain(String[] motors, double[] circumferences, double[] encoderTicks, double rotationalCoefficient, boolean reverseLeft){
         drivetrain = motors;
+        rotationCoefficient = rotationalCoefficient;
         addDcMotors(motors, circumferences, encoderTicks);
 
         for(int i = 0; i < drivetrain.length; i++){
@@ -41,7 +57,7 @@ public class Robot {
     }
 
     public void addDrivetrain(String[] motors, boolean reverseLeft){
-        addDrivetrain(motors, new double[]{1,1,1,1}, new double[]{0,0,0,0}, reverseLeft);
+        addDrivetrain(motors, new double[]{1,1,1,1}, new double[]{0,0,0,0}, 1, reverseLeft);
     }
 
     public void drive(double power, double distanceCM, Direction direction){
@@ -135,9 +151,41 @@ public class Robot {
         }
     }
 
+    public void rotate(double power, double angle) {
+        double[] powers = new double[4];
+
+        for(int i = 0; i < drivetrain.length; i++){
+            double motorPower = power;
+
+            if(i == 1 || i == 3){
+                motorPower = -power;
+            }
+
+            powers[i] = motorPower;
+
+            String motor = drivetrain[i];
+            Double[] info = dcMotorInfo.get(motor);
+
+            double circumference = info[0];
+            double encoderTicks = info[1];
+
+            int target = (int) (rotationCoefficient * angle * encoderTicks / circumference);
+            dcMotors.get(motor).setTargetPosition(target);
+        }
+
+        DcMotor test = dcMotors.get(drivetrain[0]);
+        while(Math.abs(test.getTargetPosition() - test.getCurrentPosition()) > 10){
+            for(int i = 0; i < drivetrain.length; i++){
+                dcMotors.get(drivetrain[i]).setPower(powers[i]);
+            }
+        }
+    }
+
     public void stop(){
         drive(0, 0, 0, 0);
     }
+
+    public void addDcMotor(String motor){ addDcMotor(motor, 0, 0); }
 
     public void addDcMotor(String motor, double circumference, double encoderTicks){
         dcMotors.put(motor, hardwareMap.dcMotor.get(motor));
@@ -185,12 +233,19 @@ public class Robot {
         double encoderTicks = info[1];
         int target = (int) (encoderTicks * distanceCM / circumference);
 
+        double l = 7.62;
+        double m = 4/3 * circumference/(l*encoderTicks);
+        double dn = 0.0001;
+        double slow = l*motorPower*encoderTicks/circumference;
+
         motorToMove.setTargetPosition(sign * target + dcMotors.get(motor).getCurrentPosition());
 
         while(Math.abs(motorToMove.getTargetPosition() - motorToMove.getCurrentPosition()) > 10 && !sensor.isPressed()){
             double diff = Math.abs(motorToMove.getTargetPosition() - motorToMove.getCurrentPosition());
+            double dp = (diff <= slow && motorPower > 0) ? m*dn : 0;
+            motorPower -= dp;
 
-            motorToMove.setPower(0.1*diff*motorPower);
+            motorToMove.setPower(motorPower);
         }
 
         motorToMove.setPower(0);
@@ -217,11 +272,12 @@ public class Robot {
         servoLimits.put(motor, new Double[]{rotationAngle, minAngle, maxAngle});
     }
 
-    public void resetServo(String motor){
-        servos.get(motor).setPosition(0);
+    public void resetServo(String motor, int waitTimeMillis){
+        servos.get(motor).setPosition(servoLimits.get(motor)[1]);
+        waitMillis(waitTimeMillis);
     }
 
-    public void rotateServo(String motor, double angle){
+    public void rotateServo(String motor, double angle, int waitTimeMillis){
         Double[] angleLimits = servoLimits.get(motor);
 
         double rotationAngle = angleLimits[0];
@@ -230,10 +286,57 @@ public class Robot {
 
         if(angle >= minAngle && angle <= maxAngle){
             servos.get(motor).setPosition(angle/rotationAngle);
+            waitMillis(waitTimeMillis);
         }
     }
 
-    public Robot(HardwareMap hardwareMap){
+    public void holdServo(String motor, double angle, int waitTimeMillis){
+        long start = System.currentTimeMillis();
+
+        while(System.currentTimeMillis() - start < waitTimeMillis){
+            rotateServo(motor, angle, 0);
+        }
+    }
+
+    private void waitMillis(int millis) {
+        try {
+            Thread.sleep(millis);
+        } catch(InterruptedException e) { }
+    }
+
+    public void addColorSensor(String sensor, int scaleFactor){
+        colorSensors.put(sensor, hardwareMap.get(ColorSensor.class, sensor));
+        colorSensorInfo.put(sensor, scaleFactor);
+    }
+
+    public int[] getColorRGBA(String sensor){
+        ColorSensor sensorToUse = colorSensors.get(sensor);
+        int scaleFactor = colorSensorInfo.get(sensor);
+
+        return new int[]{
+            scaleFactor*sensorToUse.red(),
+            scaleFactor*sensorToUse.green(),
+            scaleFactor*sensorToUse.blue(),
+            scaleFactor*sensorToUse.alpha()
+        };
+    }
+
+    public void addDistanceSensor(String sensor, boolean optical){
+        if(optical){
+            distanceSensors.put(sensor, (DistanceSensor) hardwareMap.opticalDistanceSensor.get(sensor));
+        }else{
+            distanceSensors.put(sensor, hardwareMap.get(DistanceSensor.class, sensor));
+        }
+    }
+
+    public double getDistanceCM(String sensor){
+        DistanceSensor sensorToUse = distanceSensors.get(sensor);
+
+        return sensorToUse.getDistance(DistanceUnit.CM);
+    }
+
+    public Robot(HardwareMap hardwareMap, Telemetry telemetry){
+        this.telemetry = telemetry;
         this.hardwareMap = hardwareMap;
     }
 
@@ -241,8 +344,3 @@ public class Robot {
         FORWARD, BACKWARD, LEFT, RIGHT;
     }
 }
-
-// Hacktoberfest pull request
-// Second Hacktoberfest pull request
-// Third Hacktoberfest pull request
-// Fourth pull req
