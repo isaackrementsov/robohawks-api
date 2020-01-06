@@ -11,10 +11,10 @@ public class AutonCompetition extends LinearOpMode {
     private Robot bot;
     private boolean team1 = true;
 
-    public void runOpMode(){
+    public void runOpMode() {
         this.bot = new Robot(hardwareMap, telemetry);
 
-        bot.addDrivetrain(
+        bot.addDrivetrain (
                 new String[]{"mRF", "mLF", "mRB", "mLB"},
                 new double[]{32, 32, 32, 32},
                 new double[]{560, 560, 560, 560},
@@ -26,7 +26,7 @@ public class AutonCompetition extends LinearOpMode {
 
         double power = 0.2;
 
-        if(team1){
+        if(team1) {
             bot.drive(power, 57, Robot.Direction.FORWARD);
             bot.drive(power, 114, Robot.Direction.LEFT);
 
@@ -35,7 +35,7 @@ public class AutonCompetition extends LinearOpMode {
 
             bot.rotate(power, 180);
             bot.drive(power, 114, Robot.Direction.FORWARD);
-        }else{
+        }else {
             bot.drive(power, 57, Robot.Direction.LEFT);
             bot.drive(power, 57, Robot.Direction.FORWARD);
 

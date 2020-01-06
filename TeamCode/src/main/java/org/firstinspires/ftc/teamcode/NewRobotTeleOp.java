@@ -35,12 +35,12 @@ public class NewRobotTeleOp extends OpMode {
         bot.resetServo("gripperTurn", 0);
     }
 
-    public void loop(){
+    public void loop() {
         processController1();
         processController2();
     }
 
-    private void processController1(){
+    private void processController1() {
         // Driver controls
         double leftX = gamepad1.left_stick_x;
         double rightX = gamepad1.right_stick_x;
@@ -99,7 +99,7 @@ public class NewRobotTeleOp extends OpMode {
         bot.rotateServo("bumper", pos, 0);
     }
 
-    private void processController2(){
+    private void processController2() {
         // Arm motor in-out, controlled by right joystick Y
         double rightY = gamepad2.right_stick_y;
 
@@ -124,7 +124,7 @@ public class NewRobotTeleOp extends OpMode {
 
         // Use dpads to move rigidly between 0 and 180
         if(dpadRight){
-            bot.rotateServo("gripperTurn", 179.9, 0);
+            bot.rotateServo("gripperTurn", 180, 0);
         }else if(dpadLeft){
             bot.rotateServo("gripperTurn", 0.1, 0);
         }/*else if(Math.abs(leftX) > .1){ // Operate precise controls if joy is pressed

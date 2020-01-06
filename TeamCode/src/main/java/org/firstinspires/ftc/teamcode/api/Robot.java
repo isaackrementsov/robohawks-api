@@ -1,8 +1,5 @@
 package org.firstinspires.ftc.teamcode.api;
 
-import android.graphics.Color;
-import android.text.method.Touch;
-
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -312,7 +309,7 @@ public class Robot {
         }
     }
 
-    public void moveLimitedMotorArray(String motor, double distanceCM, double motorPower, LimitBehavior behavior){
+    public void moveLimitedMotorArray(String motor, double distanceCM, double motorPower, LimitBehavior behavior) {
         int sign = (motorPower < 0 ? -1 : 1);
 
         TouchSensor[] sensors = limitSwitchArrays.get(motor)[sign < 0 ? 0 : 1];
@@ -324,15 +321,15 @@ public class Robot {
         int target = (int) (encoderTicks * distanceCM / circumference);
 
         double l = 7.62;
-        double m = 4/3 * circumference/(l*encoderTicks);
+        double m = 4 / 3 * circumference / (l * encoderTicks);
         double dn = 0.0001;
-        double slow = l*motorPower*encoderTicks/circumference;
+        double slow = l * motorPower * encoderTicks / circumference;
 
         motorToMove.setTargetPosition(sign * target + dcMotors.get(motor).getCurrentPosition());
 
-        while(Math.abs(motorToMove.getTargetPosition() - motorToMove.getCurrentPosition()) > 10 && arePressed(sensors, behavior)){
+        while (Math.abs(motorToMove.getTargetPosition() - motorToMove.getCurrentPosition()) > 10 && arePressed(sensors, behavior)) {
             double diff = Math.abs(motorToMove.getTargetPosition() - motorToMove.getCurrentPosition());
-            double dp = (diff <= slow && motorPower > 0) ? m*dn : 0;
+            double dp = (diff <= slow && motorPower > 0) ? m * dn : 0;
             motorPower -= dp;
 
             motorToMove.setPower(motorPower);
@@ -360,6 +357,18 @@ public class Robot {
         DcMotor motorToReset = dcMotors.get(motor);
 
         while(!endSensor.isPressed()){
+            motorToReset.setPower(-0.2);
+        }
+
+        motorToReset.setPower(0);
+        motorToReset.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+    }
+
+    public void resetLimitedMotorArray(String motor, LimitBehavior behavior) {
+        TouchSensor[] endSensors = limitSwitchArrays.get(motor)[1];
+        DcMotor motorToReset = dcMotors.get(motor);
+
+        while(arePressed(endSensors, behavior)){
             motorToReset.setPower(-0.2);
         }
 
