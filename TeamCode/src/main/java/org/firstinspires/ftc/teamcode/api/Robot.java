@@ -30,8 +30,10 @@ public class Robot {
     private HashMap<String, Double[]> servoLimits = new HashMap<>();
 
     public HashMap<String, TouchSensor[]> limitSwitches = new HashMap<>();
-    public HashMap<String, DistanceSensor> distanceSensors = new HashMap<>();
+    public HashMap<String, TouchSensor[][]> limitSwitchArrays = new HashMap<>();
 
+    public HashMap<String, DistanceSensor> distanceSensors = new HashMap<>();
+    
     public HashMap<String, ColorSensor> colorSensors = new HashMap<>();
     private HashMap<String, Integer> colorSensorInfo = new HashMap<>();
 
@@ -200,6 +202,12 @@ public class Robot {
         }
     }
 
+    public void moveDcMotor(String motor, double motorPower){
+        DcMotor motorToMove = dcMotors.get(motor);
+
+        motorToMove.setPower(motorPower);
+    }
+
     public void moveDcMotor(String motor, double distanceCM, double motorPower){
         Double[] info = dcMotorInfo.get(motor);
 
@@ -214,12 +222,51 @@ public class Robot {
         while(dcMotors.get(motor).isBusy());
     }
 
+    public void addLimitedMotor(String motor, String limitLower, String limitUpper){
+        addLimitedMotor(motor, limitLower, limitUpper, 0, 0);
+    }
+
     public void addLimitedMotor(String motor, String limitLower, String limitUpper, double circumference, double encoderTicks){
         addDcMotor(motor, circumference, encoderTicks);
 
         TouchSensor sensorLower = hardwareMap.touchSensor.get(limitLower);
         TouchSensor sensorUpper = hardwareMap.touchSensor.get(limitUpper);
         limitSwitches.put(motor, new TouchSensor[]{sensorLower, sensorUpper});
+    }
+
+    public void addLimitedMotor(String motor, String[] limitsLower, String[] limitsUpper){
+        addLimitedMotor(motor, limitsLower, limitsUpper, 0, 0);
+    }
+
+    public void addLimitedMotor(String motor, String[] limitsLower, String[] limitsUpper, double circumference, double encoderTicks){
+        addDcMotor(motor, circumference, encoderTicks);
+
+        TouchSensor[] sensorsLower = new TouchSensor[limitsLower.length];
+
+        for(int i = 0; i < limitsLower.length; i++){
+            sensorsLower[i] = hardwareMap.touchSensor.get(limitsLower[i]);
+        }
+
+        TouchSensor[] sensorsUpper = new TouchSensor[limitsUpper.length];
+
+        for(int i = 0; i < limitsUpper.length; i++){
+            sensorsUpper[i] = hardwareMap.touchSensor.get(limitsUpper[i]);
+        }
+
+        limitSwitchArrays.put(motor, new TouchSensor[][]{sensorsLower, sensorsUpper});
+    }
+
+    public void moveLimitedMotor(String motor, double motorPower){
+        int sign = (motorPower < 0 ? -1 : 1);
+
+        TouchSensor sensor = limitSwitches.get(motor)[sign < 0 ? 0 : 1];
+        DcMotor motorToMove = dcMotors.get(motor);
+
+        if(sensor.isPressed()){
+            motorToMove.setPower(0);
+        }else{
+            motorToMove.setPower(motorPower);
+        }
     }
 
     public void moveLimitedMotor(String motor, double distanceCM, double motorPower){
@@ -251,6 +298,62 @@ public class Robot {
         motorToMove.setPower(0);
     }
 
+    public void moveLimitedMotorArray(String motor, double motorPower, LimitBehavior behavior){
+        int sign = (motorPower < 0 ? -1 : 1);
+
+        TouchSensor[] sensors = limitSwitchArrays.get(motor)[sign < 0 ? 0 : 1];
+        DcMotor motorToMove = dcMotors.get(motor);
+
+        if(arePressed(sensors, behavior)){
+            motorToMove.setPower(0);
+        }else{
+            motorToMove.setPower(motorPower);
+        }
+    }
+
+    public void moveLimitedMotorArray(String motor, double distanceCM, double motorPower, LimitBehavior behavior){
+        int sign = (motorPower < 0 ? -1 : 1);
+
+        TouchSensor[] sensors = limitSwitchArrays.get(motor)[sign < 0 ? 0 : 1];
+        DcMotor motorToMove = dcMotors.get(motor);
+
+        Double[] info = dcMotorInfo.get(motor);
+        double circumference = info[0];
+        double encoderTicks = info[1];
+        int target = (int) (encoderTicks * distanceCM / circumference);
+
+        double l = 7.62;
+        double m = 4/3 * circumference/(l*encoderTicks);
+        double dn = 0.0001;
+        double slow = l*motorPower*encoderTicks/circumference;
+
+        motorToMove.setTargetPosition(sign * target + dcMotors.get(motor).getCurrentPosition());
+
+        while(Math.abs(motorToMove.getTargetPosition() - motorToMove.getCurrentPosition()) > 10 && arePressed(sensors, behavior)){
+            double diff = Math.abs(motorToMove.getTargetPosition() - motorToMove.getCurrentPosition());
+            double dp = (diff <= slow && motorPower > 0) ? m*dn : 0;
+            motorPower -= dp;
+
+            motorToMove.setPower(motorPower);
+        }
+
+        motorToMove.setPower(0);
+    }
+
+    private boolean arePressed(TouchSensor[] sensors, LimitBehavior behavior){
+        boolean pressed = behavior == LimitBehavior.AND;
+
+        for(TouchSensor sensor : sensors){
+            if(behavior == LimitBehavior.AND) pressed = sensor.isPressed() && pressed;
+            if(behavior == LimitBehavior.OR) pressed = sensor.isPressed() || pressed;
+        }
+
+        telemetry.addData("pressed", pressed);
+        telemetry.update();
+
+         return pressed;
+    }
+
     public void resetLimitedMotor(String motor){
         TouchSensor endSensor = limitSwitches.get(motor)[1];
         DcMotor motorToReset = dcMotors.get(motor);
@@ -264,7 +367,15 @@ public class Robot {
     }
 
     public void addServo(String motor){
-        addServo(motor, 180, 180, -180);
+        addServo(motor, 180, 180, 0);
+    }
+
+    public void addServo(String motor, double startAngle){
+
+    }
+
+    public void addServo(String motor, double rotationAngle, double maxAngle, double minAngle, double startAngle){
+
     }
 
     public void addServo(String motor, double rotationAngle, double maxAngle, double minAngle){
@@ -342,5 +453,9 @@ public class Robot {
 
     public static enum Direction {
         FORWARD, BACKWARD, LEFT, RIGHT;
+    }
+
+    public static enum LimitBehavior {
+        AND, OR
     }
 }

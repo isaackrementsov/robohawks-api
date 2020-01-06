@@ -10,8 +10,8 @@ import org.firstinspires.ftc.teamcode.api.Robot;
 @TeleOp
 public class TeleOpAPIExample extends OpMode {
 
-    Robot bot;
-    double speed = 0.25;
+    private Robot bot;
+    private double power = 0.2;
 
 
     public void init(){
@@ -29,11 +29,14 @@ public class TeleOpAPIExample extends OpMode {
         rightX = Range.clip(rightX, -1, 1);
         rightY = Range.clip(rightY, -1, 1);
 
-        if(gamepad1.dpad_up && speed < 4) speed += 0.1;
-        if(gamepad1.dpad_down && speed > 0) speed -= 0.1;
+        if(gamepad1.dpad_up) power = 2;
+        if(gamepad1.dpad_right) power = 1;
+        if(gamepad1.dpad_left) power = 0.2;
+        if(gamepad1.dpad_down) power = 0.1;
+
 
         if(Math.abs(leftX) > .1 || Math.abs(rightX) > .1 || Math.abs(rightY) > .1){
-            bot.drive(-speed, leftX, rightX, rightY);
+            bot.drive(-power, leftX, rightX, rightY);
         }else{
             bot.stop();
         }
