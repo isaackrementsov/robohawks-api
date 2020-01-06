@@ -27,13 +27,14 @@ public class Robot {
     private HashMap<String, Double[]> dcMotorInfo = new HashMap<>();
 
     public HashMap<String, Servo> servos = new HashMap<>();
+    private HashMap<String, Double> servoPositions = new HashMap<>();
     private HashMap<String, Double[]> servoLimits = new HashMap<>();
 
     public HashMap<String, TouchSensor[]> limitSwitches = new HashMap<>();
     public HashMap<String, TouchSensor[][]> limitSwitchArrays = new HashMap<>();
 
     public HashMap<String, DistanceSensor> distanceSensors = new HashMap<>();
-    
+
     public HashMap<String, ColorSensor> colorSensors = new HashMap<>();
     private HashMap<String, Integer> colorSensorInfo = new HashMap<>();
 
@@ -371,11 +372,15 @@ public class Robot {
     }
 
     public void addServo(String motor, double startAngle){
+        servoPositions.put(motor, startAngle);
 
+        addServo(motor);
     }
 
     public void addServo(String motor, double rotationAngle, double maxAngle, double minAngle, double startAngle){
+        servoPositions.put(motor, startAngle);
 
+        addServo(motor, rotationAngle, maxAngle, minAngle);
     }
 
     public void addServo(String motor, double rotationAngle, double maxAngle, double minAngle){
@@ -384,8 +389,22 @@ public class Robot {
     }
 
     public void resetServo(String motor, int waitTimeMillis){
-        servos.get(motor).setPosition(servoLimits.get(motor)[1]);
+        Double startAngle = servoPositions.get(motor);
+
+        servos.get(motor).setPosition((startAngle == null) ? servoLimits.get(motor)[1] : startAngle);
         waitMillis(waitTimeMillis);
+    }
+
+    public void incrementServo(String motor, double increment, int waitTimeMillis){
+        Double startAngle = servoPositions.get(motor);
+        double target = startAngle + increment;
+
+        Double[] limits = servoLimits.get(motor);
+
+        if(startAngle != null && target <= limits[1] && target >= limits[0]) {
+            servos.get(motor).setPosition(target);
+            servoPositions.put(motor, target);
+        }
     }
 
     public void rotateServo(String motor, double angle, int waitTimeMillis){
@@ -397,6 +416,10 @@ public class Robot {
 
         if(angle >= minAngle && angle <= maxAngle){
             servos.get(motor).setPosition(angle/rotationAngle);
+
+            Double currentAngle = servoPositions.get(motor);
+            if(currentAngle != null) servoPositions.put(motor, angle);
+
             waitMillis(waitTimeMillis);
         }
     }

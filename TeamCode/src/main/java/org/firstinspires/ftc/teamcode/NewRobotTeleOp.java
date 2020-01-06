@@ -12,12 +12,10 @@ public class NewRobotTeleOp extends OpMode {
     private Robot bot;
 
     private double power = 0.2;
-    private double servoPos;
 
     private boolean bumperUp;
 
     public void init(){
-        servoPos = 0;
         bumperUp = false;
 
         this.bot = new Robot(hardwareMap, telemetry);
@@ -31,7 +29,7 @@ public class NewRobotTeleOp extends OpMode {
         bot.addLimitedMotor("upDown", new String[]{"limitDown"}, new String[]{"limitUp1", "limitUp2"});
 
         bot.addServo("bumper", 180, 90, 0);
-        bot.addServo("gripperTurn");
+        bot.addServo("gripperTurn", 0);
         bot.addServo("gripper", 180, 180, 0);
 
         bot.resetServo("gripperTurn", 0);
@@ -129,11 +127,9 @@ public class NewRobotTeleOp extends OpMode {
             bot.rotateServo("gripperTurn", 179.9, 0);
         }else if(dpadLeft){
             bot.rotateServo("gripperTurn", 0.1, 0);
-        }else if(Math.abs(leftX) > .1){ // Operate precise controls if joy is pressed
-            double target = servoPos + 0.5*(leftX); // Increment servo post by -10 - 10 degrees
-            if(target >= 0 && target <= 180) servoPos = target;
-            bot.rotateServo("gripperTurn", servoPos, 0);
-        }
+        }/*else if(Math.abs(leftX) > .1){ // Operate precise controls if joy is pressed
+            bot.incrementServo("gripperTurn", 0.5*leftX, 0);
+        }*/
 
         // Move the arm up and down with triggers
         double triggerRight = gamepad2.right_trigger;
