@@ -12,7 +12,7 @@ public class JoyStickMotorTest extends OpMode {
 
     public void init(){
         this.bot = new Robot(hardwareMap, telemetry);
-        bot.addDcMotor("motor");
+        bot.addDcMotor("motor", true);
     }
 
     public void loop(){

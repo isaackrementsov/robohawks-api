@@ -12,8 +12,8 @@ public class NewChassisTest extends LinearOpMode {
     public void runOpMode() {
         this.bot = new Robot(hardwareMap, telemetry);
 
-        bot.addDcMotor("drivetrainLeft");
-        bot.addDcMotor("drivetrainRight");
+        bot.addDcMotor("drivetrainLeft", false);
+        bot.addDcMotor("drivetrainRight", false);
 
         waitForStart();
 

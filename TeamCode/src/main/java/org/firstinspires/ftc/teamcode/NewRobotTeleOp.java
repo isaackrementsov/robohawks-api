@@ -10,9 +10,7 @@ import org.firstinspires.ftc.teamcode.api.Robot;
 public class NewRobotTeleOp extends OpMode {
 
     private Robot bot;
-
     private double power = 0.2;
-
     private boolean bumperUp;
 
     public void init(){
@@ -22,14 +20,14 @@ public class NewRobotTeleOp extends OpMode {
 
         bot.addDrivetrain(new String[]{"mRF", "mLF", "mRB", "mLB"}, true);
 
-        bot.addDcMotor("intake1");
-        bot.addDcMotor("intake2");
+        bot.addDcMotor("intake1", true);
+        bot.addDcMotor("intake2", true);
 
-        bot.addLimitedMotor("inOut", "limitOut", "limitIn");
-        bot.addLimitedMotor("upDown", new String[]{"limitDown"}, new String[]{"limitUp1", "limitUp2"});
+        bot.addLimitedMotor("inOut", "limitOut", "limitIn", true);
+        bot.addLimitedMotor("upDown", new String[]{"limitDown"}, new String[]{"limitUp1", "limitUp2"}, true);
 
-        bot.addServo("bumper", 180, 90, 0);
-        bot.addServo("gripperTurn", 0);
+        bot.addServo("bumper", 180, 115, 60);
+        bot.addServo("gripperTurn", 180, 180, 0, 0);
         bot.addServo("gripper", 180, 180, 0);
 
         bot.resetServo("gripperTurn", 0);
@@ -54,8 +52,8 @@ public class NewRobotTeleOp extends OpMode {
         // Set different power modes
         if(gamepad1.dpad_up) power = 2;
         if(gamepad1.dpad_right) power = 1;
-        if(gamepad1.dpad_left) power = 0.2;
-        if(gamepad1.dpad_down) power = 0.1;
+        if(gamepad1.dpad_left) power = 0.5;
+        if(gamepad1.dpad_down) power = 0.2;
 
         // Drive the robot with joysticks if they are moved
         if(Math.abs(leftX) > .1 || Math.abs(rightX) > .1 || Math.abs(rightY) > .1){
@@ -86,14 +84,14 @@ public class NewRobotTeleOp extends OpMode {
         boolean bumperRight = gamepad1.right_bumper;
         boolean bumperLeft = gamepad1.left_bumper;
 
-        double pos = 0;
+        double pos = 60;
 
         if(bumperLeft) {
             bumperUp = false;
-            pos = 0;
+            pos = 60;
         }else if(bumperRight || bumperUp){
             bumperUp = true;
-            pos = 89;
+            pos = 115;
         }
 
         bot.rotateServo("bumper", pos, 0);
@@ -123,13 +121,15 @@ public class NewRobotTeleOp extends OpMode {
         telemetry.addData("dpad left", dpadLeft);
 
         // Use dpads to move rigidly between 0 and 180
-        if(dpadRight){
+        if(gamepad2.dpad_right){
+            bot.rotateServo("gripperTurn", 0, 0);
+        }else if(gamepad2.dpad_left){
             bot.rotateServo("gripperTurn", 180, 0);
-        }else if(dpadLeft){
-            bot.rotateServo("gripperTurn", 0.1, 0);
-        }/*else if(Math.abs(leftX) > .1){ // Operate precise controls if joy is pressed
-            bot.incrementServo("gripperTurn", 0.5*leftX, 0);
-        }*/
+        }else if(gamepad2.dpad_up){
+            bot.rotateServo("gripperTurn", 90, 0);
+        }else if(Math.abs(leftX) > .1){ // Operate precise controls if joy is pressed
+            bot.incrementServo("gripperTurn", -0.5*leftX, 0);
+        }
 
         // Move the arm up and down with triggers
         double triggerRight = gamepad2.right_trigger;
@@ -144,7 +144,7 @@ public class NewRobotTeleOp extends OpMode {
         }else if(triggerLeft > .1){
             bot.moveLimitedMotorArray("upDown", -triggerLeft, Robot.LimitBehavior.OR);
         }else{
-            bot.moveDcMotor("upDown", 0);
+            bot.moveLimitedMotorArray("upDown", 0, Robot.LimitBehavior.OR);
         }
 
         // Close/Open grabber motor using bumpers

@@ -17,7 +17,7 @@ public class TeleOpAPIExample extends OpMode {
     public void init(){
         this.bot = new Robot(hardwareMap, telemetry);
 
-        bot.addDrivetrain(new String[]{"mRF", "mLF", "mRB", "mLB"}, true);
+        bot.addDrivetrain(new String[]{"mRF", "mLF", "mRB", "mLB"}, false);
     }
 
     public void loop() {

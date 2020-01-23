@@ -14,7 +14,7 @@ public class LimitSwitchTest extends LinearOpMode {
     public void runOpMode() {
         this.bot = new Robot(hardwareMap, telemetry);
 
-        bot.addLimitedMotor("mRF", "limitLower", "limitUpper", 32, 560);
+        bot.addLimitedMotor("mRF", "limitLower", "limitUpper", 32, 560, true);
 
         waitForStart();
 

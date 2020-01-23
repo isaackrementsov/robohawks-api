@@ -1,3 +1,21 @@
+/*
+
+Code written 2019-2020,
+By:
+    * Isaac Krementsov
+    * Kaiden Cook
+ - CVU Robohawks 5741 -
+
+The purpose of the Robot class is to provide a universal and
+reusable API for programming the robot. Instead of muddling around
+with FTC's poor programming documentation and unclear features, this
+API provides clear documentation and succinct OpMode code.
+
+Check out the documentation here:
+https://www.notion.so/RoboHawks-Documentation-7f03a74bd3c747f7b37bca76e656741b
+
+*/
+
 package org.firstinspires.ftc.teamcode.api;
 
 import com.qualcomm.robotcore.hardware.ColorSensor;
@@ -15,51 +33,79 @@ import java.util.HashMap;
 
 public class Robot {
 
+    // The hardwareMap is used to get motors, as they cannot be directly stored as references
     private HardwareMap hardwareMap;
+    // Telemetry is only here for debugging; should be removed before release
     private Telemetry telemetry;
 
+    // These are the *4* motors that will be used for driving - they must be stored as [right-front, left-front, right-back, left-back]
+    // The wheels must be mecanum and aligned properly
     private String[] drivetrain = new String[4];
 
+    // Here are the actual DcMotor references, for the drivetrain and other motors; indexed by HardwareMap name
     public HashMap<String, DcMotor> dcMotors = new HashMap<>();
+    // This stores important info for motors: circumference and encoder ticks per revolution
     private HashMap<String, Double[]> dcMotorInfo = new HashMap<>();
 
+    // Here, we store servo references; also indexed by HardwareMap name
     public HashMap<String, Servo> servos = new HashMap<>();
+    // For incrementing a servo's position, we keep track of its current position here
     private HashMap<String, Double> servoPositions = new HashMap<>();
+    // This stores the total rotation angle, minimum angle, and maximum angle for a servo
     private HashMap<String, Double[]> servoLimits = new HashMap<>();
 
+    // These are references for motor limit sensors, indexed by HardwareMap name
+    // They are stores as back sensor, front sensor
     public HashMap<String, TouchSensor[]> limitSwitches = new HashMap<>();
+    // Some motors require more than 2 limits, so this stores an array of back sensors and an array of front sensors
     public HashMap<String, TouchSensor[][]> limitSwitchArrays = new HashMap<>();
+    // This keeps track of whether or not limited motors should float when power is set to 0 - they need to brake when they hit limits
+    private HashMap<String, Boolean> limitedMotorInfo = new HashMap<>();
 
+    // Here are the distance sensor references (can include Color-Distance sensors); indexed by HardwareMap name
     public HashMap<String, DistanceSensor> distanceSensors = new HashMap<>();
 
+    // Here are the optical or non-optical color sensor references; indexed by HardwareMap name
     public HashMap<String, ColorSensor> colorSensors = new HashMap<>();
+    // This stores the scaleFactor of each color sensor, which can adjust downtowned colors
     private HashMap<String, Integer> colorSensorInfo = new HashMap<>();
 
+    // This is the experimentally determined rotation coefficient of the bot (https://www.notion.so/Using-the-Robohawks-Team-API-0fb3006b5b564965b06749fd3fcd6c67#421a6b7240b743fd8aa075dbd2c60bfb)
     public double rotationCoefficient;
 
+    // This adds a set of motors will full information for each motor
     public void addDrivetrain(String[] motors, double[] circumferences, double[] encoderTicks, double rotationalCoefficient, boolean reverseLeft){
+        // Assign array of motor names to the drivetrain array
         drivetrain = motors;
         rotationCoefficient = rotationalCoefficient;
-        addDcMotors(motors, circumferences, encoderTicks);
+
+        // Add the set of motors and their info as DcMotor references; they all will need to brake
+        addDcMotors(motors, circumferences, encoderTicks, true);
 
         for(int i = 0; i < drivetrain.length; i++){
             String motor = drivetrain[i];
+            // Get the stored DcMotor reference
             DcMotor dcMotor = dcMotors.get(motor);
 
+            // If index if even, this is a left motor
             if(i % 2 == 0 && reverseLeft){
+                // If the left motors are put on backwards (they usually are), reverse them so that they go forward with positive power
                 dcMotor.setDirection(DcMotorSimple.Direction.REVERSE);
             }
 
-            dcMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            // Reset the current encoder reading
             dcMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            // Until the motors are triggered, the encoder will passively keep track of wheel rotation
             dcMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         }
     }
 
+    // In controller code, you usually don't need all of the encoder info
     public void addDrivetrain(String[] motors, boolean reverseLeft){
         addDrivetrain(motors, new double[]{1,1,1,1}, new double[]{0,0,0,0}, 1, reverseLeft);
     }
 
+    // Use the encoders to drive the bot a set distance in a set direction
     public void drive(double power, double distanceCM, Direction direction){
         double[] powers = new double[4];
 
@@ -68,45 +114,65 @@ public class Robot {
             double motorPower = power;
 
             switch(direction){
+                // If you are moving the bot backwards, all motor powers should be negative
                 case BACKWARD:
                     motorPower = -power;
                     break;
+
+                // If you are moving the robot right, you are strafing
                 case RIGHT:
+                    // Strafing right means putting the right front and left back wheels in reverse
                     if(i == 0 || i == 3){
                         motorPower = -power;
                     }
                     break;
+
+                // If you are moving the robot left, you are strafing in reverse
                 case LEFT:
+                    // Strafing left means putting the left front and right back wheels in reverse
                     if (i == 1 || i == 2){
                         motorPower = -power;
                     }
                     break;
             }
+            // Otherwise, you are going forward, so keep the powers of each wheel the same
 
             Double[] info = dcMotorInfo.get(motor);
 
             double circumference = info[0];
             double encoderTicks = info[1];
+
+            /*
+                The target position is how many encoder ticks to rotate, which is the
+                fraction of a rotation to move each wheel (target distance / wheel circumference),
+                multiplied by ticks per rotation
+            */
             int target = (int) (encoderTicks * distanceCM / circumference);
 
+            // Either increase or decrease the current position by the target
             dcMotors.get(motor).setTargetPosition((motorPower < 0 ? -1 : 1) * target + dcMotors.get(motor).getCurrentPosition());
+            // Set the motors to the FTC automatic encoder mode, RUN_TO_POSITION
             dcMotors.get(motor).setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
             powers[i] = motorPower;
         }
 
         for(int i = 0; i < drivetrain.length; i++){
+            // Power the motors in a separate loop to reduce delay between motors; this starts their movement
             dcMotors.get(drivetrain[i]).setPower(powers[i]);
         }
 
+        // Wait for the motors to be done rotating before running any other code (all motors should stop at about the same time_
         while(dcMotors.get(drivetrain[0]).isBusy());
     }
 
+    // Drive at a power, but not for a set distance
     public void drive(double power, Direction direction){
         for(int i = 0; i < drivetrain.length; i++){
             String motor = drivetrain[i];
             double motorPower = power;
 
+            // Same power rules apply as in the distance drive method
             switch(direction){
                 case BACKWARD:
                     motorPower = -power;
@@ -122,42 +188,57 @@ public class Robot {
                     }
             }
 
+            /*
+                Instead of actually setting encoders, just power the motors.
+                A second loop is not needed because to memory interactions or complex calculations
+                are here to cause delay
+            */
             dcMotors.get(motor).setPower(motorPower);
         }
     }
 
+    // This is the controller-based driving method - it rotates (yaws) and translates the robot
     public void drive(double speed, double yaw, double strafe, double power){
         for(int i = 0; i < drivetrain.length; i++){
             double motorPower = 0;
             String motor = drivetrain[i];
 
+            // Set a power based on motor position
             switch(i){
                 case 0:
+                    // For motor right front, +power=forward, +strafe=forward, +yaw=forward
                     motorPower = power + strafe + yaw;
                     break;
                 case 1:
+                    // For motor left front, +power=forward, +strafe=reverse, +yaw=reverse
                     motorPower = power - strafe - yaw;
                     break;
                 case 2:
+                    // For motor right back, +power=forward, +strafe=reverse, +yaw=forward
                     motorPower = power - strafe + yaw;
                     break;
                 case 3:
+                    // For motor left back, +power=forward, +strafe=forward, +yaw=reverse
                     motorPower = power + strafe - yaw;
             }
 
+            // Mutliply power by the speed setting for the motor
             motorPower *= speed;
 
+            // Set the power to move the motor indefinetly
             dcMotors.get(motor).setPower(motorPower);
         }
     }
 
-    public void rotate(double power, double angle) {
+    // Rotate the bot using encoders and the rotation coefficient
+    public void rotate(double power, double angle){
         double[] powers = new double[4];
 
         for(int i = 0; i < drivetrain.length; i++){
             double motorPower = power;
 
-            if(i == 1 || i == 3){
+            // Both left motors will need to be reversed
+            if(i % 2 == 1){
                 motorPower = -power;
             }
 
@@ -169,48 +250,72 @@ public class Robot {
             double circumference = info[0];
             double encoderTicks = info[1];
 
-            int target = (int) (rotationCoefficient * angle * encoderTicks / circumference);
+            /*
+                Set the target in the same way as driving, but use angle / rotationCoefficient
+                as the target distance (see https://www.notion.so/Using-the-Robohawks-Team-API-0fb3006b5b564965b06749fd3fcd6c67#421a6b7240b743fd8aa075dbd2c60bfb)
+            */
+            int target = (int) (angle / rotationCoefficient * encoderTicks / circumference);
             dcMotors.get(motor).setTargetPosition(target);
         }
 
-        DcMotor test = dcMotors.get(drivetrain[0]);
-        while(Math.abs(test.getTargetPosition() - test.getCurrentPosition()) > 10){
-            for(int i = 0; i < drivetrain.length; i++){
-                dcMotors.get(drivetrain[i]).setPower(powers[i]);
-            }
+        // Set power for all of the motors
+        for(int i = 0; i < drivetrain.length; i++){
+            dcMotors.get(drivetrain[i]).setPower(powers[i]);
         }
+
+        /*
+            FTC's automatic RUN_TO_POSITION mode attempts to spin the left motors forward to compensate for
+            what it sees as slipping, so encoders must be read manually
+        */
+
+        // Select a test motor to keep track of the drivetrain's overall progress in reaching the target position
+        DcMotor test = dcMotors.get(drivetrain[0]);
+
+        // Wait for the motors to get within 10 ticks of the target position
+        while(Math.abs(test.getTargetPosition() - test.getCurrentPosition()) > 10);
+        // Stop the robot once the target is reached
+        stop();
     }
 
+    // Set power to 0 for all of the drivetrain motors, which will brake the bot
     public void stop(){
         drive(0, 0, 0, 0);
     }
 
-    public void addDcMotor(String motor){ addDcMotor(motor, 0, 0); }
+    // Add a simple DcMotor with no extra info
+    public void addDcMotor(String motor, boolean brake){ addDcMotor(motor, 0, 0, brake); }
 
-    public void addDcMotor(String motor, double circumference, double encoderTicks){
+    // Add a DcMotor with the info needed to use encoder positioning
+    // If this is not a wheel, circumference is the distance it moves some part of the robot per revolution
+    public void addDcMotor(String motor, double circumference, double encoderTicks, boolean brake){
         dcMotors.put(motor, hardwareMap.dcMotor.get(motor));
         dcMotorInfo.put(motor,  new Double[]{circumference, encoderTicks});
 
         dcMotors.get(motor).setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
     }
 
-    public void addDcMotors(String motors[], double[] circumferences, double[] encoderTicks){
+    // Batch add DcMotors for ease of use
+    public void addDcMotors(String motors[], double[] circumferences, double[] encoderTicks, boolean brake){
         for(int i = 0; i < motors.length; i++){
-            addDcMotor(motors[i], circumferences[i], encoderTicks[i]);
+            addDcMotor(motors[i], circumferences[i], encoderTicks[i], brake);
         }
     }
 
+    // Move a DcMotor indefinitely with a set power
     public void moveDcMotor(String motor, double motorPower){
         DcMotor motorToMove = dcMotors.get(motor);
 
         motorToMove.setPower(motorPower);
     }
 
+    // Move a DcMotor for a set distance, similar to the distance drive method
     public void moveDcMotor(String motor, double distanceCM, double motorPower){
         Double[] info = dcMotorInfo.get(motor);
 
         double circumference = info[0];
         double encoderTicks = info[1];
+
+        // The encoder code used here is the same as what is used in the distance drive method
         int target = (int) (encoderTicks * distanceCM / circumference);
 
         dcMotors.get(motor).setTargetPosition((motorPower < 0 ? -1 : 1) * target + dcMotors.get(motor).getCurrentPosition());
@@ -220,58 +325,82 @@ public class Robot {
         while(dcMotors.get(motor).isBusy());
     }
 
-    public void addLimitedMotor(String motor, String limitLower, String limitUpper){
-        addLimitedMotor(motor, limitLower, limitUpper, 0, 0);
+    // Add a motor to be stopped with limit switches on either end of its range of motion
+    public void addLimitedMotor(String motor, String limitLower, String limitUpper, boolean brake){
+        addLimitedMotor(motor, limitLower, limitUpper, 0, 0, brake);
     }
 
-    public void addLimitedMotor(String motor, String limitLower, String limitUpper, double circumference, double encoderTicks){
-        addDcMotor(motor, circumference, encoderTicks);
+    // Add a limited motor with the information necessary for encoders
+    public void addLimitedMotor(String motor, String limitLower, String limitUpper, double circumference, double encoderTicks, boolean brake){
+        // The main motor will be added as a normal DcMotor
+        addDcMotor(motor, circumference, encoderTicks, brake);
 
+        // Get the upper and lower switches (upper is hit by positive power, lower is hit by negative power)
         TouchSensor sensorLower = hardwareMap.touchSensor.get(limitLower);
         TouchSensor sensorUpper = hardwareMap.touchSensor.get(limitUpper);
+
+        // Store the limit switch references and whether to brake the motor
         limitSwitches.put(motor, new TouchSensor[]{sensorLower, sensorUpper});
+        limitedMotorInfo.put(motor, brake);
     }
 
-    public void addLimitedMotor(String motor, String[] limitsLower, String[] limitsUpper){
-        addLimitedMotor(motor, limitsLower, limitsUpper, 0, 0);
+    // Add a limited motor with multiple upper/lower limit switches
+    public void addLimitedMotor(String motor, String[] limitsLower, String[] limitsUpper, boolean brake){
+        addLimitedMotor(motor, limitsLower, limitsUpper, 0, 0, brake);
     }
 
-    public void addLimitedMotor(String motor, String[] limitsLower, String[] limitsUpper, double circumference, double encoderTicks){
-        addDcMotor(motor, circumference, encoderTicks);
+    // Add the multiple limited motor with encoder information
+    public void addLimitedMotor(String motor, String[] limitsLower, String[] limitsUpper, double circumference, double encoderTicks, boolean brake){
+        addDcMotor(motor, circumference, encoderTicks, brake);
 
+        // Loop though the limitsLower array and get the TouchSensor references from the hardwareMap
         TouchSensor[] sensorsLower = new TouchSensor[limitsLower.length];
 
         for(int i = 0; i < limitsLower.length; i++){
             sensorsLower[i] = hardwareMap.touchSensor.get(limitsLower[i]);
         }
 
+        // Loop through the limitsUpper array and get the TouchSensor references from the hardwareMap
         TouchSensor[] sensorsUpper = new TouchSensor[limitsUpper.length];
 
         for(int i = 0; i < limitsUpper.length; i++){
             sensorsUpper[i] = hardwareMap.touchSensor.get(limitsUpper[i]);
         }
 
+        // Add a 2 X _ matrix to store the arrays of upper and lower limit switches
         limitSwitchArrays.put(motor, new TouchSensor[][]{sensorsLower, sensorsUpper});
+        limitedMotorInfo.put(motor, brake);
     }
 
+    // Move a basic limited motor indefinitely
     public void moveLimitedMotor(String motor, double motorPower){
         int sign = (motorPower < 0 ? -1 : 1);
 
+        // If the motor power is positive, get the upper switch; if it is negative, get the lower switch
         TouchSensor sensor = limitSwitches.get(motor)[sign < 0 ? 0 : 1];
         DcMotor motorToMove = dcMotors.get(motor);
+        boolean brake = limitedMotorInfo.get(motor);
 
+        //Wait for sensor to be pressed before stopping
         if(sensor.isPressed()){
+            // Stop the motor by braking
+            if(!brake) motorToMove.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             motorToMove.setPower(0);
+
+            // Set the zero power behaviour back to float if the motor is not meant to break
+            if(!brake) motorToMove.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         }else{
             motorToMove.setPower(motorPower);
         }
     }
 
+    //
     public void moveLimitedMotor(String motor, double distanceCM, double motorPower){
         int sign = (motorPower < 0 ? -1 : 1);
 
         TouchSensor sensor = limitSwitches.get(motor)[sign < 0 ? 0 : 1];
         DcMotor motorToMove = dcMotors.get(motor);
+        boolean brake = limitedMotorInfo.get(motor);
 
         Double[] info = dcMotorInfo.get(motor);
         double circumference = info[0];
@@ -293,17 +422,27 @@ public class Robot {
             motorToMove.setPower(motorPower);
         }
 
-        motorToMove.setPower(0);
+        if(sensor.isPressed() && !brake){
+            motorToMove.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            motorToMove.setPower(0);
+            motorToMove.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        }else{
+            motorToMove.setPower(0);
+        }
     }
 
     public void moveLimitedMotorArray(String motor, double motorPower, LimitBehavior behavior){
-        int sign = (motorPower < 0 ? -1 : 1);
+        int sign = (motorPower <= 0 ? -1 : 1);
 
         TouchSensor[] sensors = limitSwitchArrays.get(motor)[sign < 0 ? 0 : 1];
         DcMotor motorToMove = dcMotors.get(motor);
-
+        boolean brake = limitedMotorInfo.get(motor);
+        telemetry.addData("Are all sensors pressed? ", arePressed(sensors, behavior));
         if(arePressed(sensors, behavior)){
+            if(!brake) motorToMove.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             motorToMove.setPower(0);
+
+            if(!brake) motorToMove.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         }else{
             motorToMove.setPower(motorPower);
         }
@@ -314,6 +453,7 @@ public class Robot {
 
         TouchSensor[] sensors = limitSwitchArrays.get(motor)[sign < 0 ? 0 : 1];
         DcMotor motorToMove = dcMotors.get(motor);
+        boolean brake = limitedMotorInfo.get(motor);
 
         Double[] info = dcMotorInfo.get(motor);
         double circumference = info[0];
@@ -335,19 +475,24 @@ public class Robot {
             motorToMove.setPower(motorPower);
         }
 
-        motorToMove.setPower(0);
+        if(arePressed(sensors, behavior) && !brake){
+            motorToMove.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            motorToMove.setPower(0);
+
+            motorToMove.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        }else{
+            motorToMove.setPower(0);
+        }
     }
 
     private boolean arePressed(TouchSensor[] sensors, LimitBehavior behavior){
         boolean pressed = behavior == LimitBehavior.AND;
 
         for(TouchSensor sensor : sensors){
+            telemetry.addData("This sensor pressed? ", sensor.isPressed());
             if(behavior == LimitBehavior.AND) pressed = sensor.isPressed() && pressed;
             if(behavior == LimitBehavior.OR) pressed = sensor.isPressed() || pressed;
         }
-
-        telemetry.addData("pressed", pressed);
-        telemetry.update();
 
          return pressed;
     }
@@ -406,13 +551,25 @@ public class Robot {
 
     public void incrementServo(String motor, double increment, int waitTimeMillis){
         Double startAngle = servoPositions.get(motor);
-        double target = startAngle + increment;
+        double target = startAngle == null ? 0 : startAngle + increment;
 
         Double[] limits = servoLimits.get(motor);
 
-        if(startAngle != null && target <= limits[1] && target >= limits[0]) {
-            servos.get(motor).setPosition(target);
-            servoPositions.put(motor, target);
+        if(target > limits[2]) target = limits[2];
+        if(target < limits[1]) target = limits[1];
+
+        if(startAngle != null){
+            rotateServo(motor, target, waitTimeMillis);
+        }
+    }
+
+    public double getServoPos(String motor){
+        Double startAngle = servoPositions.get(motor);
+
+        if(startAngle != null){
+            return startAngle;
+        }else{
+            return 0;
         }
     }
 
