@@ -24,7 +24,8 @@ public class NewRobotTeleOp extends OpMode {
         bot.addDcMotor("intake2", true);
 
         bot.addLimitedMotor("inOut", "limitOut", "limitIn", true);
-        bot.addLimitedMotor("upDown", new String[]{"limitDown"}, new String[]{"limitUp1", "limitUp2"}, true);
+        // Limit switch positions have to be reversed because mechanical hooked up the motor backwards
+        bot.addLimitedMotor("upDown", new String[]{"limitUp1", "limitUp2"}, new String[]{"limitDown"}, true);
 
         bot.addServo("bumper", 180, 115, 60);
         bot.addServo("gripperTurn", 180, 180, 0, 0);
@@ -50,9 +51,9 @@ public class NewRobotTeleOp extends OpMode {
         rightY = Range.clip(rightY, -1, 1);
 
         // Set different power modes
-        if(gamepad1.dpad_up) power = 2;
-        if(gamepad1.dpad_right) power = 1;
-        if(gamepad1.dpad_left) power = 0.5;
+        if(gamepad1.dpad_up) power = 0.4;
+        if(gamepad1.dpad_right) power = 0.5;
+        if(gamepad1.dpad_left) power = 0.3;
         if(gamepad1.dpad_down) power = 0.2;
 
         // Drive the robot with joysticks if they are moved
@@ -111,11 +112,8 @@ public class NewRobotTeleOp extends OpMode {
         }
 
         // Rotate gripper servo, controlled by left joystick X (precise) and dpad (general)
-        double leftX = gamepad2.left_stick_x;
         boolean dpadLeft = gamepad2.dpad_left;
         boolean dpadRight = gamepad2.dpad_right;
-
-        leftX = Range.clip(leftX, -1, 1);
 
         telemetry.addData("Dpad right", dpadRight);
         telemetry.addData("dpad left", dpadLeft);
@@ -127,24 +125,17 @@ public class NewRobotTeleOp extends OpMode {
             bot.rotateServo("gripperTurn", 180, 0);
         }else if(gamepad2.dpad_up){
             bot.rotateServo("gripperTurn", 90, 0);
-        }else if(Math.abs(leftX) > .1){ // Operate precise controls if joy is pressed
-            bot.incrementServo("gripperTurn", -0.5*leftX, 0);
         }
 
         // Move the arm up and down with triggers
-        double triggerRight = gamepad2.right_trigger;
-        double triggerLeft = gamepad2.left_trigger;
-
-        triggerRight = Range.clip(triggerRight, 0, 1);
-        triggerLeft = Range.clip(triggerLeft, 0, 1);
+        double leftY = gamepad2.left_stick_y;
+        leftY = Range.clip(leftY, -1, 1);
 
         // If triggers are pressed, move up/down with limit switches
-        if(triggerRight > .1){
-            bot.moveLimitedMotorArray("upDown", triggerRight, Robot.LimitBehavior.AND);
-        }else if(triggerLeft > .1){
-            bot.moveLimitedMotorArray("upDown", -triggerLeft, Robot.LimitBehavior.OR);
+        if(Math.abs(leftY) > .1){
+            bot.moveLimitedMotorArray("upDown", 0.9*leftY, Robot.LimitBehavior.AND);
         }else{
-            bot.moveLimitedMotorArray("upDown", 0, Robot.LimitBehavior.OR);
+            bot.moveDcMotor("upDown", 0);
         }
 
         // Close/Open grabber motor using bumpers

@@ -357,6 +357,7 @@ public class Robot {
         TouchSensor[] sensorsLower = new TouchSensor[limitsLower.length];
 
         for(int i = 0; i < limitsLower.length; i++){
+            telemetry.addData("Limit name:", limitsLower[i]);
             sensorsLower[i] = hardwareMap.touchSensor.get(limitsLower[i]);
         }
 
@@ -437,7 +438,7 @@ public class Robot {
         TouchSensor[] sensors = limitSwitchArrays.get(motor)[sign < 0 ? 0 : 1];
         DcMotor motorToMove = dcMotors.get(motor);
         boolean brake = limitedMotorInfo.get(motor);
-        telemetry.addData("Are all sensors pressed? ", arePressed(sensors, behavior));
+
         if(arePressed(sensors, behavior)){
             if(!brake) motorToMove.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             motorToMove.setPower(0);
@@ -489,7 +490,7 @@ public class Robot {
         boolean pressed = behavior == LimitBehavior.AND;
 
         for(TouchSensor sensor : sensors){
-            telemetry.addData("This sensor pressed? ", sensor.isPressed());
+            telemetry.addData("Sensor pressed? ", sensor.isPressed());
             if(behavior == LimitBehavior.AND) pressed = sensor.isPressed() && pressed;
             if(behavior == LimitBehavior.OR) pressed = sensor.isPressed() || pressed;
         }
