@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
@@ -11,8 +10,7 @@ import org.firstinspires.ftc.teamcode.api.Robot;
 
 import java.util.List;
 
-@Autonomous
-public class TensorFlowTest extends LinearOpMode {
+public class TensorFlowConcept extends LinearOpMode {
 
     private Robot bot;
 
@@ -23,10 +21,18 @@ public class TensorFlowTest extends LinearOpMode {
     private final String TFOD_MODEL_ASSET = "Skystone.tflite";
     private final String STONE_LABEL = "Stone";
     private final String SKYSTONE_LABEL = "SkyStone";
-    private final String FOUNDATION_LABEL = "Foundation";
 
-    public void runOpMode(){
+    @Override
+    public void runOpMode() throws InterruptedException {
         this.bot = new Robot(hardwareMap, telemetry);
+        bot.addDrivetrain(
+                new String[]{"mRF", "mLF", "mRB", "mLB"},
+                new double[]{32, 32, 32, 32},
+                new double[]{560, 560, 560, 560},
+                1,
+                true
+        );
+
         initVuforia();
 
         if(ClassFactory.getInstance().canCreateTFObjectDetector()){
@@ -40,19 +46,7 @@ public class TensorFlowTest extends LinearOpMode {
         if(tfod != null){
             tfod.activate();
 
-            while(!isStopRequested()){
-                List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
 
-                if(updatedRecognitions != null){
-                    for(Recognition recognition : updatedRecognitions){
-                        telemetry.addData("Label: ", recognition.getLabel());
-                        telemetry.addData("Bottom: ", recognition.getBottom());
-                        telemetry.addData("Left: ", recognition.getLeft());
-                    }
-                }
-
-                telemetry.update();
-            }
 
             tfod.shutdown();
         }

@@ -143,7 +143,7 @@ public class NewRobotTeleOp extends OpMode {
         boolean bumperL = gamepad2.left_bumper;
 
         if(bumperR){
-            bot.rotateServo("gripper", 180, 0);
+            bot.rotateServo("gripper", 115, 0);
         }else if(bumperL){
             bot.rotateServo("gripper", 0, 0);
         }
