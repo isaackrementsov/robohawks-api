@@ -18,6 +18,8 @@ https://www.notion.so/RoboHawks-Documentation-7f03a74bd3c747f7b37bca76e656741b
 
 package org.firstinspires.ftc.teamcode.api;
 
+import com.qualcomm.hardware.bosch.BNO055IMU;
+import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -27,7 +29,11 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.TouchSensor;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
 import java.util.HashMap;
 
@@ -45,7 +51,7 @@ public class Robot {
     // Here are the actual DcMotor references, for the drivetrain and other motors; indexed by HardwareMap name
     public HashMap<String, DcMotor> dcMotors = new HashMap<>();
     // This stores important info for motors: circumference and encoder ticks per revolution
-    private HashMap<String, Double[]> dcMotorInfo = new HashMap<>();
+    public HashMap<String, Double[]> dcMotorInfo = new HashMap<>();
 
     // Here, we store servo references; also indexed by HardwareMap name
     public HashMap<String, Servo> servos = new HashMap<>();
@@ -70,8 +76,34 @@ public class Robot {
     // This stores the scaleFactor of each color sensor, which can adjust downtowned colors
     private HashMap<String, Integer> colorSensorInfo = new HashMap<>();
 
+    // Built in gyro sensor for Rev hub
+    public BNO055IMU imu;
+
     // This is the experimentally determined rotation coefficient of the bot (https://www.notion.so/Using-the-Robohawks-Team-API-0fb3006b5b564965b06749fd3fcd6c67#421a6b7240b743fd8aa075dbd2c60bfb)
     public double rotationCoefficient;
+
+    public void configureIMU(){
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
+        parameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        parameters.calibrationDataFile = "BNO055IMUCalibration.json";
+        parameters.loggingEnabled = true;
+        parameters.loggingTag = "IMU";
+        parameters.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
+
+        imu = hardwareMap.get(BNO055IMU.class, "imu");
+        imu.initialize(parameters);
+    }
+
+    public double getAngularOrientation(){
+        if(imu != null){
+            Orientation orientation = imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.XYX, AngleUnit.DEGREES);
+
+            return orientation.secondAngle;
+        }else{
+            return 0;
+        }
+    }
 
     // This adds a set of motors will full information for each motor
     public void addDrivetrain(String[] motors, double[] circumferences, double[] encoderTicks, double rotationalCoefficient, boolean reverseLeft){
@@ -164,6 +196,52 @@ public class Robot {
 
         // Wait for the motors to be done rotating before running any other code (all motors should stop at about the same time_
         while(dcMotors.get(drivetrain[0]).isBusy());
+    }
+
+    public void driveWithIMU(double power, double distanceCM, Direction direction){
+        double[] powers = new double[4];
+
+        for(int i = 0; i < drivetrain.length; i++){
+            String motor = drivetrain[i];
+            double motorPower = power;
+
+            switch(direction){
+                case BACKWARD:
+                    motorPower = -power;
+                    break;
+
+                case RIGHT:
+                    if(i == 0 || i == 3){
+                        motorPower = -power;
+                    }
+                    break;
+
+                case LEFT:
+                    if (i == 1 || i == 2){
+                        motorPower = -power;
+                    }
+                    break;
+            }
+
+            Double[] info = dcMotorInfo.get(motor);
+            double circumference = info[0];
+            double encoderTicks = info[1];
+            int target = (int) (encoderTicks * distanceCM / circumference);
+
+            dcMotors.get(motor).setTargetPosition((motorPower < 0 ? -1 : 1) * target + dcMotors.get(motor).getCurrentPosition());
+
+            powers[i] = motorPower;
+        }
+
+        for(int i = 0; i < drivetrain.length; i++){
+            dcMotors.get(drivetrain[i]).setPower(powers[i]);
+        }
+
+        DcMotor test = dcMotors.get(drivetrain[0]);
+
+        while(Math.abs(test.getTargetPosition() - test.getCurrentPosition()) > 10);
+
+        stop();
     }
 
     // Drive at a power, but not for a set distance
@@ -274,6 +352,36 @@ public class Robot {
         // Wait for the motors to get within 10 ticks of the target position
         while(Math.abs(test.getTargetPosition() - test.getCurrentPosition()) > 10);
         // Stop the robot once the target is reached
+        stop();
+    }
+
+    public void rotateWithIMU(double power, double angle){
+        double[] powers = new double[4];
+
+        for(int i = 0; i < drivetrain.length; i++){
+            double motorPower = power;
+
+            if(i % 2 == 1){
+                motorPower = -power;
+            }
+
+            powers[i] = motorPower;
+
+            String motor = drivetrain[i];
+            Double[] info = dcMotorInfo.get(motor);
+
+            double circumference = info[0];
+            double encoderTicks = info[1];
+
+        }
+
+        for(int i = 0; i < drivetrain.length; i++){
+            dcMotors.get(drivetrain[i]).setPower(powers[i]);
+        }
+
+        double startAngle = getAngularOrientation();
+        while(Math.abs(startAngle - getAngularOrientation()) > 2);
+
         stop();
     }
 

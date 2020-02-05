@@ -22,6 +22,12 @@ public class TensorFlowConcept extends LinearOpMode {
     private final String STONE_LABEL = "Stone";
     private final String SKYSTONE_LABEL = "SkyStone";
 
+    private final double Y_TURN = 0;
+    private final double Y_BLOCKS = 0;
+
+    private int step = 0;
+    private double power = 0.2;
+
     @Override
     public void runOpMode() throws InterruptedException {
         this.bot = new Robot(hardwareMap, telemetry);
@@ -46,10 +52,105 @@ public class TensorFlowConcept extends LinearOpMode {
         if(tfod != null){
             tfod.activate();
 
-
+            getStones();
+            moveFoundation();
+            park();
 
             tfod.shutdown();
         }
+    }
+
+    private void park(){
+
+    }
+
+    private void moveFoundation(){
+        // Move bumpers down
+
+        bot.rotateWithIMU(0.2, 50);
+    }
+
+    private void getStones(){
+        final double MAX_DISTANCE_RATIO = 0.9;
+
+        // Go left until close enough to row of blocks
+        double currentDistanceRatio = 0;
+        while(currentDistanceRatio < MAX_DISTANCE_RATIO){
+            bot.drive(0.2, Robot.Direction.LEFT);
+
+            List<Recognition> recognitions = tfod.getUpdatedRecognitions();
+            if(recognitions != null){
+                currentDistanceRatio = getClosestRecognitionDistance(recognitions);
+            }
+        }
+        bot.stop();
+
+        int blocksFound = 0;
+        final int MAX_BLOCKS = 3;
+
+        double dy = lookForStone(true, true);
+        deliverStone(true, dy, true);
+        blocksFound++;
+
+        while(blocksFound <= MAX_BLOCKS){
+            dy = lookForStone(blocksFound <= 2, false);
+            deliverStone(false, dy, blocksFound != MAX_BLOCKS);
+            blocksFound++;
+        }
+    }
+
+    private double lookForStone(boolean skystone, boolean fromBottom){
+        boolean detected = false;
+        Robot.Direction direction = fromBottom ? Robot.Direction.BACKWARD : Robot.Direction.FORWARD;
+        String label = skystone ? SKYSTONE_LABEL : STONE_LABEL;
+
+        double y0 = bot.dcMotors.get("mRF").getCurrentPosition();
+        while(!detected){
+            bot.drive(power, direction);
+
+            List<Recognition> recognitions = tfod.getUpdatedRecognitions();
+            detected = recognitions != null && containsLabel(recognitions, label); //Make sure this isn't calling method on a null reference
+        }
+        double yf = bot.dcMotors.get("mRF").getCurrentPosition();
+        bot.stop();
+
+        Double[] info = bot.dcMotorInfo.get("mRF");
+        double dy = (yf - y0)*info[0]/info[1]; // Y distance travelled while looking for a block
+
+        return dy;
+    }
+
+    private void deliverStone(boolean stoneFromBottom, double dy, boolean goBack){
+        if(stoneFromBottom){
+            bot.drive(power, Y_TURN + Y_BLOCKS - dy, Robot.Direction.BACKWARD);
+        }else{
+            bot.drive(power, Y_TURN + dy, Robot.Direction.BACKWARD);
+        }
+
+        if(goBack) bot.drive(power, Y_TURN, Robot.Direction.FORWARD);
+    }
+
+    private boolean containsLabel(List<Recognition> recognitions, String label){
+        for(Recognition recognition : recognitions){
+            if(recognition.getLabel().equals(label)){
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private double getClosestRecognitionDistance(List<Recognition> recognitions){
+        double min = -1;
+
+        for(Recognition recognition : recognitions){
+            double distRatio = recognition.getHeight()/recognition.getImageHeight();
+            if(min < 0 || distRatio < min){
+                min = distRatio;
+            }
+        }
+
+        return min;
     }
 
     private void initVuforia(){

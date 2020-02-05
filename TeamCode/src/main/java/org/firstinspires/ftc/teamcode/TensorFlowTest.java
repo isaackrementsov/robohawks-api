@@ -77,7 +77,7 @@ public class TensorFlowTest extends LinearOpMode {
         TFObjectDetector.Parameters params = new TFObjectDetector.Parameters(tfodMonitorViewID);
 
         tfod = ClassFactory.getInstance().createTFObjectDetector(params, vuforia);
-        tfod.loadModelFromAsset(TFOD_MODEL_ASSET, STONE_LABEL, SKYSTONE_LABEL);
+        tfod.loadModelFromAsset(TFOD_MODEL_ASSET, STONE_LABEL, SKYSTONE_LABEL, FOUNDATION_LABEL);
     }
 
 }

@@ -29,7 +29,7 @@ public class NewRobotTeleOp extends OpMode {
 
         bot.addServo("bumper", 180, 115, 60);
         bot.addServo("gripperTurn", 180, 180, 0, 0);
-        bot.addServo("gripper", 180, 180, 0);
+        bot.addServo("gripper", 180, 115, 0);
 
         bot.resetServo("gripperTurn", 0);
     }
@@ -143,9 +143,9 @@ public class NewRobotTeleOp extends OpMode {
         boolean bumperL = gamepad2.left_bumper;
 
         if(bumperR){
-            bot.rotateServo("gripper", 115, 0);
+            bot.holdServo("gripper", 115, 0);
         }else if(bumperL){
-            bot.rotateServo("gripper", 0, 0);
+            bot.holdServo("gripper", 0, 0);
         }
     }
 
