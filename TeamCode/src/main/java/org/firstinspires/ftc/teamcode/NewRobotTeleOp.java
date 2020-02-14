@@ -13,7 +13,7 @@ public class NewRobotTeleOp extends OpMode {
     private double power = 0.2;
     private boolean bumperUp;
 
-    public void init(){
+    public void init() {
         bumperUp = false;
 
         this.bot = new Robot(hardwareMap, telemetry);
@@ -25,13 +25,18 @@ public class NewRobotTeleOp extends OpMode {
 
         bot.addLimitedMotor("inOut", "limitOut", "limitIn", true);
         // Limit switch positions have to be reversed because mechanical hooked up the motor backwards
-        bot.addLimitedMotor("upDown", new String[]{"limitUp1", "limitUp2"}, new String[]{"limitDown"}, true);
+        //bot.addLimitedMotor("upDown", new String[]{"limitUp1", "limitUp2"}, new String[]{"limitDown"}, true);
+        bot.addDcMotor("upDown", true); // 288 encoder ticks
 
         bot.addServo("bumper", 180, 115, 60);
-        bot.addServo("gripperTurn", 180, 180, 0, 0);
-        bot.addServo("gripper", 180, 115, 0);
+        bot.addServo("gripperTurn", 180, 180, 0, 5);
+        bot.addServo("gripper", 180, 180, 0);
+        bot.addServo("capstone", 180, 170, 5);
+        bot.addServo("droopy", 180, 120, 30);
 
-        bot.resetServo("gripperTurn", 0);
+
+        //bot.resetServo("gripperTurn", 0);
+        //bot.resetLimitedMotor("inOut");
     }
 
     public void loop() {
@@ -51,15 +56,15 @@ public class NewRobotTeleOp extends OpMode {
         rightY = Range.clip(rightY, -1, 1);
 
         // Set different power modes
-        if(gamepad1.dpad_up) power = 0.4;
-        if(gamepad1.dpad_right) power = 0.5;
-        if(gamepad1.dpad_left) power = 0.3;
-        if(gamepad1.dpad_down) power = 0.2;
+        if (gamepad1.dpad_up) power = 0.4;
+        if (gamepad1.dpad_right) power = 0.5;
+        if (gamepad1.dpad_left) power = 0.3;
+        if (gamepad1.dpad_down) power = 0.2;
 
         // Drive the robot with joysticks if they are moved
-        if(Math.abs(leftX) > .1 || Math.abs(rightX) > .1 || Math.abs(rightY) > .1){
+        if (Math.abs(leftX) > .1 || Math.abs(rightX) > .1 || Math.abs(rightY) > .1) {
             bot.drive(power, leftX, rightX, rightY);
-        }else{
+        } else {
             // If the joysticks are not pressed, do not move the bot
             bot.stop();
         }
@@ -75,8 +80,8 @@ public class NewRobotTeleOp extends OpMode {
         double intakePower = 0;
 
         // Set the intake power based on triggers if they are pressed
-        if(triggerRight > .1) intakePower = 4;
-        else if(triggerLeft > .1) intakePower = -4;
+        if (triggerRight > .1) intakePower = 4;
+        else if (triggerLeft > .1) intakePower = -4;
 
         bot.moveDcMotor("intake1", intakePower);
         bot.moveDcMotor("intake2", -intakePower);
@@ -87,10 +92,10 @@ public class NewRobotTeleOp extends OpMode {
 
         double pos = 60;
 
-        if(bumperLeft) {
+        if (bumperLeft) {
             bumperUp = false;
             pos = 60;
-        }else if(bumperRight || bumperUp){
+        } else if (bumperRight || bumperUp) {
             bumperUp = true;
             pos = 115;
         }
@@ -99,17 +104,51 @@ public class NewRobotTeleOp extends OpMode {
     }
 
     private void processController2() {
+
         // Arm motor in-out, controlled by right joystick Y
+        double leftY = gamepad2.left_stick_y;
         double rightY = gamepad2.right_stick_y;
+        double triggerRight = gamepad2.right_trigger;
+        double triggerLeft = gamepad2.left_trigger;
+
+        //bot.resetLimitedMotor("inOut");
 
         rightY = Range.clip(rightY, -1, 1);
+        leftY = Range.clip(leftY, -1, 1);
 
         // Make sure joy is being moved
-        if(Math.abs(rightY) > .1){
+        if (Math.abs(rightY) > .1) {
             bot.moveLimitedMotor("inOut", rightY);
-        }else{
+        } else {
             bot.moveDcMotor("inOut", 0);
         }
+
+        if(Math.abs(leftY) > .01) {
+            bot.rotateServo("droopy", 120, 0);
+        } else {
+            bot.rotateServo("droopy", 32.5, 0);
+        }
+
+        // Eva controls
+
+        /*
+        if (gamepad2.a) {
+            // capstone servo move to 180 degrees
+            bot.rotateServo("capstone", 180.0, 0);
+        }
+        if (gamepad2.y) {
+            bot.rotateServo("gripper", 180.0, 0);
+            bot.moveDcMotor("upDown", 30, 0.2);
+        }
+        if (gamepad2.x) {
+            bot.rotateServo("gripper", 180.0, 0);
+            bot.moveLimitedMotor("inOut", 30, 0.2);
+        } else {
+            bot.rotateServo("capstone", 0, 0);
+        }
+        */
+
+
 
         // Rotate gripper servo, controlled by left joystick X (precise) and dpad (general)
         boolean dpadLeft = gamepad2.dpad_left;
@@ -119,34 +158,49 @@ public class NewRobotTeleOp extends OpMode {
         telemetry.addData("dpad left", dpadLeft);
 
         // Use dpads to move rigidly between 0 and 180
-        if(gamepad2.dpad_right){
+        if (gamepad2.dpad_right) {
             bot.rotateServo("gripperTurn", 0, 0);
-        }else if(gamepad2.dpad_left){
+        } else if (gamepad2.dpad_left) {
             bot.rotateServo("gripperTurn", 180, 0);
-        }else if(gamepad2.dpad_up){
+        } else if (gamepad2.dpad_up) {
             bot.rotateServo("gripperTurn", 90, 0);
         }
 
         // Move the arm up and down with triggers
-        double leftY = gamepad2.left_stick_y;
-        leftY = Range.clip(leftY, -1, 1);
 
         // If triggers are pressed, move up/down with limit switches
-        if(Math.abs(leftY) > .1){
-            bot.moveLimitedMotorArray("upDown", 0.9*leftY, Robot.LimitBehavior.AND);
-        }else{
+        /*
+        if (Math.abs(leftY) > .1) {
+            bot.moveLimitedMotorArray("upDown", 0.9 * leftY, Robot.LimitBehavior.AND);
+        } else {
             bot.moveDcMotor("upDown", 0);
         }
+        */
+
 
         // Close/Open grabber motor using bumpers
         boolean bumperR = gamepad2.right_bumper;
         boolean bumperL = gamepad2.left_bumper;
 
-        if(bumperR){
-            bot.holdServo("gripper", 115, 0);
-        }else if(bumperL){
-            bot.holdServo("gripper", 0, 0);
-        }
-    }
 
+        if (bumperL) {
+            bot.rotateServo("gripper", 0, 0);
+        } else if (bumperR) {
+            bot.rotateServo("gripper", 180, 0);
+        }
+
+
+        if(triggerRight > 0.1) {
+            bot.moveDcMotor("upDown", .6);
+        }
+        else if (triggerLeft > 0.1) {
+            bot.moveDcMotor("upDown", -.6);
+        }
+        else {
+            bot.moveDcMotor("upDown", 0);
+        }
+
+
+    }
 }
+
