@@ -1,6 +1,10 @@
+// TODO: CREATE MORE OPMODES FOR EACH TEAM STARTING POS!!!
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
@@ -22,22 +26,40 @@ public class TensorFlowConcept extends LinearOpMode {
     private final String STONE_LABEL = "Stone";
     private final String SKYSTONE_LABEL = "SkyStone";
 
-    private final double Y_TURN = 0;
-    private final double Y_BLOCKS = 0;
+    private final double TILE_SIZE = 60.96;
+
+    private final double Y_TURN = 3*TILE_SIZE;
+    private final double Y_BLOCKS = TILE_SIZE;
 
     private int step = 0;
-    private double power = 0.2;
+    private double LOW_POWER = 0.2;
+    private double HIGH_POWER = 1;
 
     @Override
     public void runOpMode() throws InterruptedException {
         this.bot = new Robot(hardwareMap, telemetry);
         bot.addDrivetrain(
                 new String[]{"mRF", "mLF", "mRB", "mLB"},
-                new double[]{32, 32, 32, 32},
-                new double[]{560, 560, 560, 560},
+                new double[]{31.42, 31.42, 31.42, 31.42},
+                new double[]{767.2, 767.2, 767.2, 767.2},
                 1,
                 true
         );
+
+        bot.addServo("sideClaw", 180, 180, 0);
+        bot.addServo("sideArm", 180, 180, 0);
+        bot.addServo("bumper", 180, 115, 60);
+
+        bot.resetServo("bumper", 0);
+        bot.rotateServo("sideArm", 20, 0);
+
+        bot.addLimitTrigger(new String[]{"bumperLimit1", "bumperLimit2"}, new Robot.Action(){
+
+            public void run(Robot bot){
+                bot.rotateServo("bumper", 115, 0);
+            }
+
+        }, "bumperDeploy");
 
         initVuforia();
 
@@ -60,23 +82,35 @@ public class TensorFlowConcept extends LinearOpMode {
         }
     }
 
+    // TODO: Make sure this is the right distance
     private void park(){
-
+        bot.drive(HIGH_POWER, TILE_SIZE*1.5, Robot.Direction.BACKWARD);
     }
 
+    // TODO: Test distances here
     private void moveFoundation(){
-        // Move bumpers down
+        bot.driveUntilEvenTriggered(0.2, Robot.Direction.BACKWARD, "bumperDeploy", Robot.LimitBehavior.AND);
 
-        bot.rotateWithIMU(0.2, 50);
+        bot.rotateWithIMU(LOW_POWER, 50);
+        bot.drive(LOW_POWER, 10, Robot.Direction.LEFT);
+        bot.rotateWithIMU(LOW_POWER, -30);
+
+        bot.rotateServo("bumper", 65, 0);
     }
 
+    // TODO: TEST THIS!!!!!!
     private void getStones(){
-        final double MAX_DISTANCE_RATIO = 0.9;
+        // TODO: Maybe use bumper code
+        bot.drive(LOW_POWER, Y_BLOCKS, Robot.Direction.BACKWARD);
+
+        final double MAX_DISTANCE_RATIO = 0.6;
 
         // Go left until close enough to row of blocks
         double currentDistanceRatio = 0;
-        while(currentDistanceRatio < MAX_DISTANCE_RATIO){
-            bot.drive(0.2, Robot.Direction.LEFT);
+        while(Math.abs(currentDistanceRatio) < MAX_DISTANCE_RATIO){
+            telemetry.update();
+
+            bot.drive(LOW_POWER, Robot.Direction.LEFT);
 
             List<Recognition> recognitions = tfod.getUpdatedRecognitions();
             if(recognitions != null){
@@ -106,7 +140,7 @@ public class TensorFlowConcept extends LinearOpMode {
 
         double y0 = bot.dcMotors.get("mRF").getCurrentPosition();
         while(!detected){
-            bot.drive(power, direction);
+            bot.drive(LOW_POWER, direction);
 
             List<Recognition> recognitions = tfod.getUpdatedRecognitions();
             detected = recognitions != null && containsLabel(recognitions, label); //Make sure this isn't calling method on a null reference
@@ -117,17 +151,23 @@ public class TensorFlowConcept extends LinearOpMode {
         Double[] info = bot.dcMotorInfo.get("mRF");
         double dy = (yf - y0)*info[0]/info[1]; // Y distance travelled while looking for a block
 
+        bot.rotateServo("sideArm", 70, 1000);
+        bot.rotateServo("sideClaw", 180, 1000);
+
         return dy;
     }
 
     private void deliverStone(boolean stoneFromBottom, double dy, boolean goBack){
         if(stoneFromBottom){
-            bot.drive(power, Y_TURN + Y_BLOCKS - dy, Robot.Direction.BACKWARD);
+            bot.drive(HIGH_POWER, Y_TURN + Y_BLOCKS - dy, Robot.Direction.BACKWARD);
         }else{
-            bot.drive(power, Y_TURN + dy, Robot.Direction.BACKWARD);
+            bot.drive(HIGH_POWER, Y_TURN + dy, Robot.Direction.BACKWARD);
         }
 
-        if(goBack) bot.drive(power, Y_TURN, Robot.Direction.FORWARD);
+        bot.rotateServo("sideArm", 20, 1000);
+        bot.rotateServo("sideClaw", 0, 1000);
+
+        if(goBack) bot.drive(HIGH_POWER, Y_TURN, Robot.Direction.FORWARD);
     }
 
     private boolean containsLabel(List<Recognition> recognitions, String label){

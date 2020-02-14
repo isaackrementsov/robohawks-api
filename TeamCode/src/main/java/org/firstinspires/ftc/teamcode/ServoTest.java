@@ -6,7 +6,6 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.Servo;
 
-@Autonomous
 public class ServoTest extends LinearOpMode {
 
     private Robot bot;
@@ -14,13 +13,15 @@ public class ServoTest extends LinearOpMode {
 
     public void runOpMode() {
         this.bot = new Robot(hardwareMap, telemetry);
-        //Servo lock = hardwareMap.servo.get("lock");
-        bot.addServo("lock", 180, 90, 0);
+
+        bot.addServo("sideArm", 180, 180, 0);
 
         waitForStart();
-        bot.holdServo("lock", 90.0, 3000);
-        bot.resetServo("lock", 3000);
-        //telemetry.update();
+
+        while(!isStopRequested()){
+            bot.rotateServo("sideArm", 20, 2000);
+            bot.rotateServo("sideArm", 160, 2000);
+        }
     }
 
     /*

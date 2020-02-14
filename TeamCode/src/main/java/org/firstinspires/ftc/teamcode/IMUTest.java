@@ -5,7 +5,6 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import org.firstinspires.ftc.teamcode.api.Robot;
 
-@Autonomous
 public class IMUTest extends LinearOpMode {
 
     private Robot bot;

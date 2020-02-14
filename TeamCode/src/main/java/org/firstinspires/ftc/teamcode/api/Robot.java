@@ -18,6 +18,8 @@ https://www.notion.so/RoboHawks-Documentation-7f03a74bd3c747f7b37bca76e656741b
 
 package org.firstinspires.ftc.teamcode.api;
 
+import android.text.method.Touch;
+
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
 import com.qualcomm.robotcore.hardware.ColorSensor;
@@ -35,6 +37,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Robot {
@@ -75,6 +78,9 @@ public class Robot {
     public HashMap<String, ColorSensor> colorSensors = new HashMap<>();
     // This stores the scaleFactor of each color sensor, which can adjust downtowned colors
     private HashMap<String, Integer> colorSensorInfo = new HashMap<>();
+
+    // Stores actions for event triggers
+    private HashMap<String, Action> actions = new HashMap<>();
 
     // Built in gyro sensor for Rev hub
     public BNO055IMU imu;
@@ -180,7 +186,6 @@ public class Robot {
                 multiplied by ticks per rotation
             */
             int target = (int) (encoderTicks * distanceCM / circumference);
-
             // Either increase or decrease the current position by the target
             dcMotors.get(motor).setTargetPosition((motorPower < 0 ? -1 : 1) * target + dcMotors.get(motor).getCurrentPosition());
             // Set the motors to the FTC automatic encoder mode, RUN_TO_POSITION
@@ -251,17 +256,19 @@ public class Robot {
             double motorPower = power;
 
             // Same power rules apply as in the distance drive method
-            switch(direction){
+            switch(direction) {
                 case BACKWARD:
                     motorPower = -power;
                     break;
+
                 case RIGHT:
-                    if(i > 1){
+                    if (i == 0 || i == 3) {
                         motorPower = -power;
                     }
                     break;
+
                 case LEFT:
-                    if(i < 2){
+                    if (i == 1 || i == 2) {
                         motorPower = -power;
                     }
             }
@@ -316,7 +323,7 @@ public class Robot {
             double motorPower = power;
 
             // Both left motors will need to be reversed
-            if(i % 2 == 1){
+            if(i % 2 == 1) {
                 motorPower = -power;
             }
 
@@ -333,7 +340,7 @@ public class Robot {
                 as the target distance (see https://www.notion.so/Using-the-Robohawks-Team-API-0fb3006b5b564965b06749fd3fcd6c67#421a6b7240b743fd8aa075dbd2c60bfb)
             */
             int target = (int) (angle / rotationCoefficient * encoderTicks / circumference);
-            dcMotors.get(motor).setTargetPosition(target);
+            dcMotors.get(motor).setTargetPosition((motorPower < 0 ? -1 : 1) * target + dcMotors.get(motor).getCurrentPosition());
         }
 
         // Set power for all of the motors
@@ -388,6 +395,27 @@ public class Robot {
     // Set power to 0 for all of the drivetrain motors, which will brake the bot
     public void stop(){
         drive(0, 0, 0, 0);
+    }
+
+    public void addLimitTrigger(String[] switches, Action action, String actionId){ //TODO add and or behavior
+        TouchSensor[] sensors = new TouchSensor[switches.length];
+
+        for(int i = 0; i < switches.length; i++){
+            sensors[i] = hardwareMap.touchSensor.get(switches[i]);
+        }
+
+        limitSwitches.put(actionId, sensors);
+        actions.put(actionId, action);
+    }
+
+    public void driveUntilEvenTriggered(double power, Direction direction, String actionId, LimitBehavior behavior){
+        TouchSensor[] sensors = limitSwitches.get(actionId);
+
+        while(!arePressed(sensors, behavior)){
+            drive(power, direction);
+        }
+
+        actions.get(actionId).run(this);
     }
 
     // Add a simple DcMotor with no extra info
@@ -465,7 +493,6 @@ public class Robot {
         TouchSensor[] sensorsLower = new TouchSensor[limitsLower.length];
 
         for(int i = 0; i < limitsLower.length; i++){
-            telemetry.addData("Limit name:", limitsLower[i]);
             sensorsLower[i] = hardwareMap.touchSensor.get(limitsLower[i]);
         }
 
@@ -598,7 +625,6 @@ public class Robot {
         boolean pressed = behavior == LimitBehavior.AND;
 
         for(TouchSensor sensor : sensors){
-            telemetry.addData("Sensor pressed? ", sensor.isPressed());
             if(behavior == LimitBehavior.AND) pressed = sensor.isPressed() && pressed;
             if(behavior == LimitBehavior.OR) pressed = sensor.isPressed() || pressed;
         }
@@ -755,5 +781,9 @@ public class Robot {
 
     public static enum LimitBehavior {
         AND, OR
+    }
+
+    public static interface Action {
+        public void run(Robot bot);
     }
 }

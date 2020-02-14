@@ -5,7 +5,6 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.api.Robot;
 
-@TeleOp
 public class DrivetrainMotorTest extends OpMode {
 
     private Robot bot;
@@ -23,15 +22,13 @@ public class DrivetrainMotorTest extends OpMode {
 
     public void loop(){
         if(gamepad1.x){
-            bot.moveDcMotor("mRF", 0.2);
+            bot.moveDcMotor("mRF", 1);
         }else if(gamepad1.y){
-            bot.moveDcMotor("mLF", 0.2);
+            bot.moveDcMotor("mLF", 1);
         }else if(gamepad1.a){
-            bot.moveDcMotor("mRB", 0.2);
+            bot.moveDcMotor("mRB", 1);
         }else if(gamepad1.b){
-            bot.moveDcMotor("mLB", 0.2);
-        }else{
-            bot.stop();
+            bot.moveDcMotor("mLB", 1);
         }
     }
 

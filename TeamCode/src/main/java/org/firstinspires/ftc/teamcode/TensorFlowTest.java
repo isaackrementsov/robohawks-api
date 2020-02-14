@@ -11,7 +11,6 @@ import org.firstinspires.ftc.teamcode.api.Robot;
 
 import java.util.List;
 
-@Autonomous
 public class TensorFlowTest extends LinearOpMode {
 
     private Robot bot;

@@ -15,14 +15,14 @@ public class BotRotationTest extends LinearOpMode {
 
         bot.addDrivetrain(
                 new String[]{"mRF", "mLF", "mRB", "mLB"},
-                new double[]{32, 32, 32, 32},
-                new double[]{560, 560, 560, 560},
-                0.745,
+                new double[]{31.42, 31.42, 31.42, 31.42},
+                new double[]{767.2, 767.2, 767.2, 767.2},
+                1.60,
                 true
         );
 
         waitForStart();
 
-        bot.rotate(0.2, 180.0);
+        bot.rotate(1, 90.0);
     }
 }

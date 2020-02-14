@@ -7,7 +7,6 @@ import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.teamcode.api.Robot;
 
-@TeleOp
 public class TeleOpAPIExample extends OpMode {
 
     private Robot bot;
